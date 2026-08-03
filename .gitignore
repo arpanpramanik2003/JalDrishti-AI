@@ -1,0 +1,57 @@
+# ==========================================
+# JalDrishti Master Root GitIgnore
+# ==========================================
+
+# Operating System Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# Environment & Secret Files
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# IDE & Editor Configurations
+.vscode/
+.idea/
+*.iml
+*.ipr
+*.iws
+*.swp
+*~
+
+# Log & Temporary Files
+*.log
+*.tmp
+*.temp
+scratch/
+
+# Python Virtual Envs & Cache (Backend)
+**/venv/
+**/env/
+**/.venv/
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/*.pyd
+**/.pytest_cache/
+**/.mypy_cache/
+**/jaldrishti-backend/app/chroma_db/
+**/jaldrishti.db
+
+# Flutter & Mobile Build Artifacts (Mobile)
+**/jaldrishti_mobile/.dart_tool/
+**/jaldrishti_mobile/.flutter-plugins-dependencies
+**/jaldrishti_mobile/.pub-cache/
+**/jaldrishti_mobile/.pub/
+**/jaldrishti_mobile/build/
+**/jaldrishti_mobile/.artifacts/
+**/jaldrishti_mobile/android/.gradle/

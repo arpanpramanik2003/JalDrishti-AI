@@ -1,0 +1,248 @@
+import 'dart:convert';
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+import '../core/constants/api_constants.dart';
+import '../models/farm_plot_model.dart';
+import 'auth_provider.dart';
+import 'irrigation_provider.dart';
+
+class FarmPlotProvider extends ChangeNotifier {
+  List<FarmPlotModel> _plots = [];
+  FarmPlotModel? _selectedPlot;
+  bool _isLoading = false;
+  String? _errorMessage;
+
+  List<FarmPlotModel> get plots => List.unmodifiable(_plots);
+  FarmPlotModel? get selectedPlot => _selectedPlot;
+  bool get isLoading => _isLoading;
+  String? get errorMessage => _errorMessage;
+
+  // Fetch all farm plots of current user
+  Future<void> fetchPlots({
+    required AuthProvider auth,
+    required IrrigationProvider irrigation,
+  }) async {
+    if (auth.token == null) return;
+
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final response = await http.get(
+        Uri.parse('${ApiConstants.baseUrl}/plots/'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ${auth.token}',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
+        _plots = data.map((json) => FarmPlotModel.fromJson(json)).toList();
+
+        if (_plots.isNotEmpty) {
+          int? targetId;
+          // Preserve currently selected plot if it still exists
+          if (_selectedPlot != null && _plots.any((p) => p.id == _selectedPlot!.id)) {
+            targetId = _selectedPlot!.id;
+          } else {
+            // Check SharedPreferences for previously saved plot selection
+            try {
+              final prefs = await SharedPreferences.getInstance();
+              final savedId = prefs.getInt('selected_plot_id');
+              if (savedId != null && _plots.any((p) => p.id == savedId)) {
+                targetId = savedId;
+              }
+            } catch (_) {}
+          }
+
+          final targetPlot = targetId != null
+              ? _plots.firstWhere((p) => p.id == targetId)
+              : _plots.firstWhere((p) => p.isPrimary, orElse: () => _plots.first);
+
+          selectPlot(targetPlot, irrigation);
+        } else {
+          _selectedPlot = null;
+        }
+      } else {
+        _errorMessage = 'Failed to load farm plots (${response.statusCode})';
+      }
+    } catch (e) {
+      _errorMessage = 'Connection error fetching farm plots.';
+      debugPrint('Fetch farm plots error: $e');
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  // Select Active Plot and update IrrigationProvider calculation
+  void selectPlot(FarmPlotModel plot, IrrigationProvider irrigation) async {
+    _selectedPlot = plot;
+    notifyListeners();
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt('selected_plot_id', plot.id);
+    } catch (_) {}
+
+    // Atomic update to IrrigationProvider with plot & crop parameters
+    irrigation.updatePlotAndCrop(
+      plotId: plot.id,
+      lat: plot.latitude,
+      lon: plot.longitude,
+      cropId: plot.cropId,
+      sowingDate: plot.sowingDate,
+      fieldName: plot.name,
+      areaAcres: plot.areaAcres,
+      pumpHp: plot.pumpHp,
+      pumpFlowLps: plot.pumpFlowLps,
+      irrigationMethod: plot.irrigationMethod,
+      soilType: plot.soilType,
+    );
+  }
+
+  // Create a New Farm Plot
+  Future<bool> createPlot({
+    required AuthProvider auth,
+    required IrrigationProvider irrigation,
+    required FarmPlotModel plotData,
+  }) async {
+    if (auth.token == null) return false;
+
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final response = await http.post(
+        Uri.parse('${ApiConstants.baseUrl}/plots/'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ${auth.token}',
+        },
+        body: jsonEncode(plotData.toJson()),
+      );
+
+      if (response.statusCode == 200) {
+        await fetchPlots(auth: auth, irrigation: irrigation);
+        return true;
+      } else {
+        final data = jsonDecode(response.body);
+        _errorMessage = data['detail'] ?? 'Failed to create plot.';
+        return false;
+      }
+    } catch (e) {
+      _errorMessage = 'Connection error creating farm plot.';
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  // Update Existing Farm Plot
+  Future<bool> updatePlot({
+    required AuthProvider auth,
+    required IrrigationProvider irrigation,
+    required int plotId,
+    required FarmPlotModel plotData,
+  }) async {
+    if (auth.token == null) return false;
+
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final response = await http.put(
+        Uri.parse('${ApiConstants.baseUrl}/plots/$plotId'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ${auth.token}',
+        },
+        body: jsonEncode(plotData.toJson()),
+      );
+
+      if (response.statusCode == 200) {
+        await fetchPlots(auth: auth, irrigation: irrigation);
+        return true;
+      } else {
+        _errorMessage = 'Failed to update farm plot.';
+        return false;
+      }
+    } catch (e) {
+      _errorMessage = 'Connection error updating farm plot.';
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  // Set Primary Farm Plot
+  Future<bool> setPrimaryPlot({
+    required AuthProvider auth,
+    required IrrigationProvider irrigation,
+    required int plotId,
+  }) async {
+    if (auth.token == null) return false;
+
+    try {
+      final response = await http.put(
+        Uri.parse('${ApiConstants.baseUrl}/plots/$plotId/set-primary'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ${auth.token}',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        await fetchPlots(auth: auth, irrigation: irrigation);
+        return true;
+      }
+    } catch (e) {
+      debugPrint('Set primary plot error: $e');
+    }
+    return false;
+  }
+
+  // Delete Farm Plot
+  Future<bool> deletePlot({
+    required AuthProvider auth,
+    required IrrigationProvider irrigation,
+    required int plotId,
+  }) async {
+    if (auth.token == null) return false;
+
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final response = await http.delete(
+        Uri.parse('${ApiConstants.baseUrl}/plots/$plotId'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ${auth.token}',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        await fetchPlots(auth: auth, irrigation: irrigation);
+        return true;
+      } else {
+        _errorMessage = 'Failed to delete plot.';
+        return false;
+      }
+    } catch (e) {
+      _errorMessage = 'Connection error deleting plot.';
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+}

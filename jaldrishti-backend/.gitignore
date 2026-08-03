@@ -1,0 +1,52 @@
+# ==========================================
+# JalDrishti Backend GitIgnore (FastAPI)
+# ==========================================
+
+# Virtual Environments
+venv/
+env/
+.venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Byte-compiled / Optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Environment Variables & Credentials
+.env
+.env.local
+.env.*.local
+
+# Databases & Local SQLite (Migrated to Supabase)
+*.db
+*.sqlite
+*.sqlite3
+jaldrishti.db
+
+# Vector DB Local Index Store (ChromaDB)
+app/chroma_db/
+*.chroma
+
+# Logs & Temp Files
+*.log
+*.tmp
+*.temp
+
+# Editor & IDE Configs
+.vscode/
+.idea/
+*.iml
+pyrightconfig.json
+
+# Operating System Files
+.DS_Store
+Thumbs.db
