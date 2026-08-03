@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:lucide_icons/lucide_icons.dart';
+import 'package:provider/provider.dart';
 import '../models/chat_message.dart';
+import '../providers/chat_provider.dart';
 import 'package:intl/intl.dart';
 
 class ChatBubble extends StatelessWidget {
@@ -14,6 +16,8 @@ class ChatBubble extends StatelessWidget {
   Widget build(BuildContext context) {
     final isUser = message.isUser;
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final chatProvider = context.watch<ChatProvider>();
+    final isSpeaking = chatProvider.currentlySpeakingId == message.id;
 
     final botBubbleBg = isDark ? const Color(0xFF1E293B) : Colors.white;
     final botBorderColor = isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1);
@@ -26,7 +30,7 @@ class ChatBubble extends StatelessWidget {
         margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 14),
         padding: const EdgeInsets.all(14),
         constraints: BoxConstraints(
-          maxWidth: MediaQuery.of(context).size.width * 0.82,
+          maxWidth: MediaQuery.of(context).size.width * 0.84,
         ),
         decoration: BoxDecoration(
           color: isUser ? const Color(0xFF0284C7) : botBubbleBg,
@@ -53,16 +57,58 @@ class ChatBubble extends StatelessWidget {
           children: [
             if (!isUser) ...[
               Row(
-                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Icon(LucideIcons.bot, size: 16, color: botStrongColor),
-                  const SizedBox(width: 6),
-                  Text(
-                    'JalSathi AI 🌾',
-                    style: GoogleFonts.outfit(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color: botStrongColor,
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(LucideIcons.bot, size: 16, color: botStrongColor),
+                      const SizedBox(width: 6),
+                      Text(
+                        'JalSathi AI 🌾',
+                        style: GoogleFonts.outfit(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: botStrongColor,
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  // Speaker Audio Output Button (Text To Speech)
+                  InkWell(
+                    onTap: () => chatProvider.speakMessage(message),
+                    borderRadius: BorderRadius.circular(20),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: isSpeaking
+                            ? const Color(0xFF10B981).withValues(alpha: 0.2)
+                            : botStrongColor.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: isSpeaking ? const Color(0xFF10B981) : botStrongColor.withValues(alpha: 0.3),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            isSpeaking ? LucideIcons.volumeX : LucideIcons.volume2,
+                            size: 14,
+                            color: isSpeaking ? const Color(0xFF10B981) : botStrongColor,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            isSpeaking ? 'Stop' : 'Listen 🔊',
+                            style: GoogleFonts.inter(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: isSpeaking ? const Color(0xFF10B981) : botStrongColor,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ],

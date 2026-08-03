@@ -257,7 +257,37 @@ class _ChatScreenState extends State<ChatScreen> {
                 ),
               ),
 
-            // 4. Input Text Box
+            // 4. Active Listening Voice Indicator Banner
+            if (chatProvider.isListening)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                color: const Color(0xFFEF4444).withValues(alpha: 0.15),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      width: 10,
+                      height: 10,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFEF4444),
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      '🎙️ Listening in ${chatProvider.selectedLanguage}... Speak your agronomy question!',
+                      style: GoogleFonts.inter(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFFEF4444),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+            // 5. Input Text Box & Voice Mic Button
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
@@ -267,6 +297,36 @@ class _ChatScreenState extends State<ChatScreen> {
               child: SafeArea(
                 child: Row(
                   children: [
+                    // Microphone STT Button
+                    CircleAvatar(
+                      backgroundColor: chatProvider.isListening
+                          ? const Color(0xFFEF4444)
+                          : primaryColor.withValues(alpha: 0.15),
+                      child: IconButton(
+                        icon: Icon(
+                          chatProvider.isListening ? LucideIcons.micOff : LucideIcons.mic,
+                          color: chatProvider.isListening ? Colors.white : primaryColor,
+                          size: 20,
+                        ),
+                        onPressed: () {
+                          if (chatProvider.isListening) {
+                            chatProvider.stopListening();
+                          } else {
+                            chatProvider.startListening((speechText) {
+                              setState(() {
+                                _controller.text = speechText;
+                                _controller.selection = TextSelection.fromPosition(
+                                  TextPosition(offset: _controller.text.length),
+                                );
+                              });
+                            });
+                          }
+                        },
+                        tooltip: 'Voice Input (Speech-to-Text)',
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+
                     Expanded(
                       child: TextField(
                         controller: _controller,
@@ -274,10 +334,10 @@ class _ChatScreenState extends State<ChatScreen> {
                         style: TextStyle(color: textColor),
                         decoration: InputDecoration(
                           hintText: chatProvider.selectedLanguage == 'Bengali'
-                              ? 'ফসল, রোগ বা সার সম্পর্কিত প্রশ্ন করুন...'
+                              ? 'ফসল, রোগ বা সার সম্পর্কিত প্রশ্ন বলুন বা লিখুন...'
                               : chatProvider.selectedLanguage == 'Hindi'
-                                  ? 'फ़सल, बीमारी या खाद के बारे में पूछें...'
-                                  : 'Ask about crop care, diseases, fertilizers...',
+                                  ? 'फ़सल, बीमारी या खाद के बारे में बोलें या लिखें...'
+                                  : 'Speak or type crop care & disease questions...',
                           hintStyle: GoogleFonts.inter(color: subtextColor, fontSize: 13),
                           counterText: '',
                           border: OutlineInputBorder(

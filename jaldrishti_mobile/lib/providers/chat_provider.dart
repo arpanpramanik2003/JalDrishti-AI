@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_tts/flutter_tts.dart';
+import 'package:speech_to_text/speech_to_text.dart' as stt;
 import '../models/chat_message.dart';
 import '../core/services/api_service.dart';
 
@@ -7,15 +9,145 @@ class ChatProvider extends ChangeNotifier {
   bool _isSending = false;
   String _selectedLanguage = 'English'; // Options: English, Bengali, Hindi
 
+  // Text-To-Speech (TTS) Engine
+  final FlutterTts _tts = FlutterTts();
+  String? _currentlySpeakingId;
+
+  // Speech-To-Text (STT) Engine
+  final stt.SpeechToText _speechToText = stt.SpeechToText();
+  bool _isListening = false;
+  bool _sttAvailable = false;
+  String _recognizedText = '';
+
   List<ChatMessage> get messages => List.unmodifiable(_messages);
   bool get isSending => _isSending;
   String get selectedLanguage => _selectedLanguage;
 
-  void setLanguage(String lang) {
-    _selectedLanguage = lang;
+  String? get currentlySpeakingId => _currentlySpeakingId;
+  bool get isListening => _isListening;
+  bool get sttAvailable => _sttAvailable;
+  String get recognizedText => _recognizedText;
+
+  ChatProvider() {
+    _initTts();
+    _initStt();
+  }
+
+  void _initTts() {
+    _tts.setCompletionHandler(() {
+      _currentlySpeakingId = null;
+      notifyListeners();
+    });
+    _tts.setErrorHandler((msg) {
+      _currentlySpeakingId = null;
+      notifyListeners();
+    });
+  }
+
+  Future<void> _initStt() async {
+    try {
+      _sttAvailable = await _speechToText.initialize(
+        onError: (val) {
+          _isListening = false;
+          notifyListeners();
+        },
+        onStatus: (status) {
+          if (status == 'done' || status == 'notListening') {
+            _isListening = false;
+            notifyListeners();
+          }
+        },
+      );
+    } catch (_) {
+      _sttAvailable = false;
+    }
     notifyListeners();
   }
 
+  void setLanguage(String lang) {
+    _selectedLanguage = lang;
+    stopSpeaking();
+    notifyListeners();
+  }
+
+  // --------------------------------------------------------
+  // Text To Speech (Audio Voice Output)
+  // --------------------------------------------------------
+  Future<void> speakMessage(ChatMessage message) async {
+    if (_currentlySpeakingId == message.id) {
+      await stopSpeaking();
+      return;
+    }
+
+    await stopSpeaking();
+    _currentlySpeakingId = message.id;
+    notifyListeners();
+
+    String langCode = 'en-US';
+    if (_selectedLanguage == 'Bengali') {
+      langCode = 'bn-IN';
+    } else if (_selectedLanguage == 'Hindi') {
+      langCode = 'hi-IN';
+    }
+
+    await _tts.setLanguage(langCode);
+    await _tts.setPitch(1.0);
+    await _tts.setSpeechRate(0.45); // Natural relaxed speed for farmers
+
+    // Clean markdown characters before passing to speech synthesizer
+    final cleanText = message.text
+        .replaceAll(RegExp(r'[\*\#\_\`\-]'), '')
+        .replaceAll(RegExp(r'\n+'), '. ');
+
+    await _tts.speak(cleanText);
+  }
+
+  Future<void> stopSpeaking() async {
+    await _tts.stop();
+    _currentlySpeakingId = null;
+    notifyListeners();
+  }
+
+  // --------------------------------------------------------
+  // Speech To Text (Microphone Voice Input)
+  // --------------------------------------------------------
+  Future<void> startListening(Function(String text) onSpeechResult) async {
+    if (!_sttAvailable) {
+      await _initStt();
+    }
+
+    if (!_sttAvailable) return;
+
+    _isListening = true;
+    _recognizedText = '';
+    notifyListeners();
+
+    String localeId = 'en_IN';
+    if (_selectedLanguage == 'Bengali') {
+      localeId = 'bn_IN';
+    } else if (_selectedLanguage == 'Hindi') {
+      localeId = 'hi_IN';
+    }
+
+    await _speechToText.listen(
+      localeId: localeId,
+      onResult: (val) {
+        _recognizedText = val.recognizedWords;
+        onSpeechResult(_recognizedText);
+        notifyListeners();
+      },
+    );
+  }
+
+  Future<void> stopListening() async {
+    await _speechToText.stop();
+    _isListening = false;
+    notifyListeners();
+  }
+
+  // --------------------------------------------------------
+  // Chat Messaging Logic
+  // --------------------------------------------------------
   Future<void> sendMessage({
     required String text,
     String? farmerName,
@@ -24,6 +156,8 @@ class ChatProvider extends ChangeNotifier {
     double? farmAreaAcres,
   }) async {
     if (text.trim().isEmpty) return;
+
+    stopSpeaking();
 
     final userMessage = ChatMessage(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
@@ -71,7 +205,15 @@ class ChatProvider extends ChangeNotifier {
   }
 
   void clearChat() {
+    stopSpeaking();
     _messages.clear();
     notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _tts.stop();
+    _speechToText.stop();
+    super.dispose();
   }
 }
