@@ -1,12 +1,12 @@
 # 🌾 JalDrishti (जलदृष्टि) – AI-Powered Precision Agronomy & Hydrological Irrigation Engine
 
 <p align="center">
-  <a href="https://flutter.dev"><img src="https://img.shields.io/badge/Flutter-3.24%2B-02569B?style=for-the-badge&logo=flutter&logoColor=white" alt="Flutter"></a>
+  <a href="https://flutter.dev"><img src="https://img.shields.io/badge/Flutter-3.24-02569B?style=for-the-badge&logo=flutter&logoColor=white" alt="Flutter"></a>
   <a href="https://fastapi.tiangolo.com"><img src="https://img.shields.io/badge/FastAPI-0.109-009688?style=for-the-badge&logo=fastapi&logoColor=white" alt="FastAPI"></a>
   <a href="https://python.org"><img src="https://img.shields.io/badge/Python-3.11-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python"></a>
   <a href="https://supabase.com"><img src="https://img.shields.io/badge/Supabase-PostgreSQL-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white" alt="Supabase"></a>
-  <a href="https://redis.io"><img src="https://img.shields.io/badge/Redis-Cloud-DC382D?style=for-the-badge&logo=redis&logoColor=white" alt="Redis"></a>
-  <a href="https://trychroma.com"><img src="https://img.shields.io/badge/ChromaDB-Vector_DB-FF6F00?style=for-the-badge&logo=python&logoColor=white" alt="ChromaDB"></a>
+  <a href="https://redis.io"><img src="https://img.shields.io/badge/Redis-7.0-DC382D?style=for-the-badge&logo=redis&logoColor=white" alt="Redis"></a>
+  <a href="https://trychroma.com"><img src="https://img.shields.io/badge/ChromaDB-VectorDB-FF6F00?style=for-the-badge&logo=python&logoColor=white" alt="ChromaDB"></a>
 </p>
 
 ---
