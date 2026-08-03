@@ -18,6 +18,7 @@ class ChatProvider extends ChangeNotifier {
   bool _isListening = false;
   bool _sttAvailable = false;
   String _recognizedText = '';
+  double _soundLevel = 0.0;
 
   List<ChatMessage> get messages => List.unmodifiable(_messages);
   bool get isSending => _isSending;
@@ -27,6 +28,7 @@ class ChatProvider extends ChangeNotifier {
   bool get isListening => _isListening;
   bool get sttAvailable => _sttAvailable;
   String get recognizedText => _recognizedText;
+  double get soundLevel => _soundLevel;
 
   ChatProvider() {
     _initTts();
@@ -130,10 +132,21 @@ class ChatProvider extends ChangeNotifier {
     }
 
     await _speechToText.listen(
-      localeId: localeId,
+      listenOptions: stt.SpeechListenOptions(
+        localeId: localeId,
+        partialResults: true,
+        listenMode: stt.ListenMode.dictation,
+        listenFor: const Duration(seconds: 30),
+        pauseFor: const Duration(seconds: 5),
+        onDevice: false,
+      ),
       onResult: (val) {
         _recognizedText = val.recognizedWords;
         onSpeechResult(_recognizedText);
+        notifyListeners();
+      },
+      onSoundLevelChange: (level) {
+        _soundLevel = level;
         notifyListeners();
       },
     );
@@ -142,6 +155,7 @@ class ChatProvider extends ChangeNotifier {
   Future<void> stopListening() async {
     await _speechToText.stop();
     _isListening = false;
+    _soundLevel = 0.0;
     notifyListeners();
   }
 

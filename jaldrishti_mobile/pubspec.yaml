@@ -31,8 +31,8 @@ dependencies:
   flutter_markdown: ^0.7.0
 
   # Voice Speech-to-Text & Text-to-Speech
-  speech_to_text: ^6.6.0
-  flutter_tts: ^3.8.5
+  speech_to_text: ^7.0.0
+  flutter_tts: ^4.0.0
 
   cupertino_icons: ^1.0.8
 

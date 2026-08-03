@@ -257,7 +257,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 ),
               ),
 
-            // 4. Active Listening Voice Indicator Banner
+            // 4. Active Listening Voice Indicator Banner (Overflow Fixed with Flexible & Ellipsis)
             if (chatProvider.isListening)
               Container(
                 width: double.infinity,
@@ -275,12 +275,15 @@ class _ChatScreenState extends State<ChatScreen> {
                       ),
                     ),
                     const SizedBox(width: 8),
-                    Text(
-                      '🎙️ Listening in ${chatProvider.selectedLanguage}... Speak your agronomy question!',
-                      style: GoogleFonts.inter(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: const Color(0xFFEF4444),
+                    Flexible(
+                      child: Text(
+                        '🎙️ Listening in ${chatProvider.selectedLanguage}... Speak now!',
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xFFEF4444),
+                        ),
                       ),
                     ),
                   ],
@@ -297,33 +300,25 @@ class _ChatScreenState extends State<ChatScreen> {
               child: SafeArea(
                 child: Row(
                   children: [
-                    // Microphone STT Button
-                    CircleAvatar(
-                      backgroundColor: chatProvider.isListening
-                          ? const Color(0xFFEF4444)
-                          : primaryColor.withValues(alpha: 0.15),
-                      child: IconButton(
-                        icon: Icon(
-                          chatProvider.isListening ? LucideIcons.micOff : LucideIcons.mic,
-                          color: chatProvider.isListening ? Colors.white : primaryColor,
-                          size: 20,
-                        ),
-                        onPressed: () {
-                          if (chatProvider.isListening) {
-                            chatProvider.stopListening();
-                          } else {
-                            chatProvider.startListening((speechText) {
-                              setState(() {
-                                _controller.text = speechText;
-                                _controller.selection = TextSelection.fromPosition(
-                                  TextPosition(offset: _controller.text.length),
-                                );
-                              });
+                    // Microphone STT Button with Motion Decibel Animation
+                    _AudioPulsingMicButton(
+                      isListening: chatProvider.isListening,
+                      soundLevel: chatProvider.soundLevel,
+                      primaryColor: primaryColor,
+                      onPressed: () {
+                        if (chatProvider.isListening) {
+                          chatProvider.stopListening();
+                        } else {
+                          chatProvider.startListening((speechText) {
+                            setState(() {
+                              _controller.text = speechText;
+                              _controller.selection = TextSelection.fromPosition(
+                                TextPosition(offset: _controller.text.length),
+                              );
                             });
-                          }
-                        },
-                        tooltip: 'Voice Input (Speech-to-Text)',
-                      ),
+                          });
+                        }
+                      },
                     ),
                     const SizedBox(width: 8),
 
@@ -369,6 +364,92 @@ class _ChatScreenState extends State<ChatScreen> {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Animated Microphone Button that scales & pulses dynamically based on speech audio decibels
+class _AudioPulsingMicButton extends StatefulWidget {
+  final bool isListening;
+  final double soundLevel;
+  final Color primaryColor;
+  final VoidCallback onPressed;
+
+  const _AudioPulsingMicButton({
+    required this.isListening,
+    required this.soundLevel,
+    required this.primaryColor,
+    required this.onPressed,
+  });
+
+  @override
+  State<_AudioPulsingMicButton> createState() => _AudioPulsingMicButtonState();
+}
+
+class _AudioPulsingMicButtonState extends State<_AudioPulsingMicButton>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!widget.isListening) {
+      return CircleAvatar(
+        backgroundColor: widget.primaryColor.withValues(alpha: 0.15),
+        child: IconButton(
+          icon: Icon(LucideIcons.mic, color: widget.primaryColor, size: 20),
+          onPressed: widget.onPressed,
+          tooltip: 'Voice Input (Speech-to-Text)',
+        ),
+      );
+    }
+
+    // Normalize audio decibel sound level (range ~ -2.0 to +10.0) into a scale factor
+    final normLevel = ((widget.soundLevel.abs()) % 10.0) / 10.0;
+    final decibelScale = 1.0 + (normLevel * 0.3);
+
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        final pulseScale = 1.0 + (_controller.value * 0.12) + (normLevel * 0.18);
+        return Transform.scale(
+          scale: decibelScale,
+          child: Container(
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFFEF4444).withValues(alpha: 0.35 * _controller.value + 0.15),
+                  blurRadius: 10 * pulseScale,
+                  spreadRadius: 3 * pulseScale,
+                ),
+              ],
+            ),
+            child: CircleAvatar(
+              backgroundColor: const Color(0xFFEF4444),
+              child: IconButton(
+                icon: const Icon(LucideIcons.micOff, color: Colors.white, size: 20),
+                onPressed: widget.onPressed,
+                tooltip: 'Stop Voice Input',
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }
