@@ -43,11 +43,13 @@
   - 🌽 **Maize**: Fall Armyworm (*Spodoptera frugiperda*)
 - Provides actionable **Chemical Dosages** (e.g., Tricyclazole, Mancozeb) and **Organic Bio-Pesticide Treatments** (e.g., Neem Oil, *Pseudomonas fluorescens*).
 
-### 🤖 5. JalSathi AI – Multilingual RAG Agronomy Assistant
+### 🤖 5. JalSathi AI – Multilingual RAG Agronomy Voice Assistant
 - Powered by **Retrieval-Augmented Generation (RAG)** over ICAR & State Agricultural University **Package of Practices (PoP)** documents.
 - Integrated **ChromaDB Vector Store** with HuggingFace embeddings (`all-MiniLM-L6-v2`).
-- Supports **Voice-to-Text Speech Input**, **Audio Response Synthesis**, and **Multi-lingual Conversations** (Bengali, Hindi, English).
-- Smart offline/online Fallback mechanism ensuring continuous guidance.
+- **Voice-to-Text (STT)** with real-time **Audio Decibel Motion Animation** on the mic button.
+- **Text-to-Speech (TTS)** voice read-aloud buttons on AI responses in native Bengali (`bn-IN`), Hindi (`hi-IN`), and English (`en-US`).
+- Fully localized **Multi-lingual UI** (Bengali, Hindi, English) including greetings, companion subtitles, and agronomic suggestions.
+- Multi-tier Fallback chain (Groq Llama-3-70B $\rightarrow$ Gemini 1.5 Flash $\rightarrow$ Local Knowledge Engine).
 
 ---
 

@@ -18,12 +18,50 @@ class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
 
-  static const List<String> _quickSuggestions = [
-    "🧪 How to control Stem Borer in Paddy?",
-    "🌧️ When should I irrigate my field today?",
-    "🧪 Best N-P-K fertilizer dosage for Potato?",
-    "🌾 How to increase crop yield naturally?",
-  ];
+  List<String> _getSuggestions(String lang) {
+    if (lang == 'Bengali') {
+      return const [
+        "🧪 ধানে কান্ড পচা ও মাজরা পোকা দমন করার উপায় কী?",
+        "🌧️ আজ আমার ক্ষেতে কখন সেচ দেওয়া উচিত?",
+        "🧪 আলুর জন্য সঠিক N-P-K সারের প্রয়োগ মাত্রা কত?",
+        "🌾 প্রাকৃতিক উপায়ে ফসলের ফলন বাড়াব কীভাবে?",
+      ];
+    } else if (lang == 'Hindi') {
+      return const [
+        "🧪 धान में तना छेदक (Stem Borer) कीट नियंत्रण कैसे करें?",
+        "🌧️ आज मुझे खेत में सिंचाई कब करनी चाहिए?",
+        "🧪 आलू के लिए सही N-P-K उर्वरक की मात्रा क्या है?",
+        "🌾 प्राकृतिक तरीके से फसल की पैदावार कैसे बढ़ाएं?",
+      ];
+    }
+    return const [
+      "🧪 How to control Stem Borer in Paddy?",
+      "🌧️ When should I irrigate my field today?",
+      "🧪 Best N-P-K fertilizer dosage for Potato?",
+      "🌾 How to increase crop yield naturally?",
+    ];
+  }
+
+  String _getGreeting(String lang, String farmerName) {
+    if (lang == 'Bengali') return 'নমস্কার $farmerName! 👋';
+    if (lang == 'Hindi') return 'नमस्ते $farmerName! 👋';
+    return 'Hello $farmerName! 👋';
+  }
+
+  String _getIntroSubtitle(String lang, String locationName) {
+    if (lang == 'Bengali') {
+      return 'আমি আপনার জলসাথী AI সহকারী। $locationName অঞ্চলে ধানের পোকা দমন, সারের মাত্রা বা সেচ সংক্রান্ত প্রশ্ন করুন!';
+    } else if (lang == 'Hindi') {
+      return 'मैं आपका जलसाथी AI सहायक हूँ। $locationName क्षेत्र में फ़सल कीट नियंत्रण, खाद की मात्रा या सिंचाई की जानकारी पूछें!';
+    }
+    return 'I am your JalSathi AI companion. Ask me anything about crop diseases, chemical dosages, or irrigation schedules for $locationName!';
+  }
+
+  String _getSuggestionHeader(String lang) {
+    if (lang == 'Bengali') return '💡 দ্রুত পরামর্শমূলক প্রশ্নসমূহ:';
+    if (lang == 'Hindi') return '💡 त्वरित सुझाव प्रश्न:';
+    return '💡 Quick Suggestion Questions:';
+  }
 
   @override
   void dispose() {
@@ -175,7 +213,7 @@ class _ChatScreenState extends State<ChatScreen> {
                           ),
                           const SizedBox(height: 16),
                           Text(
-                            'Hello $farmerName! 👋',
+                            _getGreeting(chatProvider.selectedLanguage, farmerName),
                             style: GoogleFonts.outfit(
                               fontSize: 22,
                               fontWeight: FontWeight.bold,
@@ -184,18 +222,18 @@ class _ChatScreenState extends State<ChatScreen> {
                           ),
                           const SizedBox(height: 6),
                           Text(
-                            'I am your JalSathi AI companion. Ask me anything about crop diseases, chemical dosages, or irrigation schedules for $locationName!',
+                            _getIntroSubtitle(chatProvider.selectedLanguage, locationName),
                             textAlign: TextAlign.center,
                             style: GoogleFonts.inter(fontSize: 13, color: subtextColor),
                           ),
                           const SizedBox(height: 28),
 
                           Text(
-                            '💡 Quick Suggestion Questions:',
+                            _getSuggestionHeader(chatProvider.selectedLanguage),
                             style: GoogleFonts.outfit(fontSize: 13, fontWeight: FontWeight.bold, color: primaryColor),
                           ),
                           const SizedBox(height: 12),
-                          ..._quickSuggestions.map((suggestion) => Padding(
+                          ..._getSuggestions(chatProvider.selectedLanguage).map((suggestion) => Padding(
                                 padding: const EdgeInsets.only(bottom: 8.0),
                                 child: InkWell(
                                   onTap: () => _sendQuery(suggestion),

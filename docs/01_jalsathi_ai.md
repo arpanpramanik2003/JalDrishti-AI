@@ -1,19 +1,19 @@
 # 🤖 JalSathi AI – RAG-Powered Agronomy Voice & Text Assistant
 
 ## 📖 Overview
-**JalSathi AI (जलसाथी)** is an intelligent agronomic virtual assistant designed specifically for Indian farmers. It combines **Retrieval-Augmented Generation (RAG)** over verified agricultural university guidelines (ICAR / SAU **Package of Practices**) with multi-lingual Speech-to-Text and Text-to-Speech engines.
+**JalSathi AI (জলसाथी)** is an intelligent agronomic virtual assistant designed specifically for Indian farmers. It combines **Retrieval-Augmented Generation (RAG)** over verified agricultural university guidelines (ICAR / SAU **Package of Practices**) with multi-lingual Speech-to-Text (STT) and Text-to-Speech (TTS) audio engines.
 
 ```text
-┌─────────────────┐     ┌─────────────────────┐     ┌──────────────────────┐
-│  Farmer Voice   │ ──> │ Speech-to-Text      │ ──> │ JalSathi RAG Engine  │
-│  / Text Input   │     │ (Whisper / Flutter) │     │ (FastAPI Service)    │
-└─────────────────┘     └─────────────────────┘     └──────────┬───────────┘
-                                                               │
-                                                               ▼
-┌─────────────────┐     ┌─────────────────────┐     ┌──────────────────────┐
-│ Audio Speech    │ <── │ Text-to-Speech      │ <── │ ChromaDB Vector Search│
-│ Response Output │     │ (Flutter TTS)       │     │ + Groq Llama-3 LLM   │
-└─────────────────┘     └─────────────────────┘     └──────────────────────┘
+┌─────────────────┐     ┌───────────────────────┐     ┌──────────────────────┐
+│  Farmer Voice   │ ──> │ Speech-to-Text        │ ──> │ JalSathi RAG Engine  │
+│  / Text Input   │     │ (speech_to_text 7.4)  │     │ (FastAPI Service)    │
+└─────────────────┘     └───────────────────────┘     └──────────┬───────────┘
+                                                                 │
+                                                                 ▼
+┌─────────────────┐     ┌───────────────────────┐     ┌──────────────────────┐
+│ Audio Speech    │ <── │ Text-to-Speech        │ <── │ ChromaDB Vector Search│
+│ Response Output │     │ (flutter_tts 4.2)     │     │ + Groq Llama-3 LLM   │
+└─────────────────┘     └───────────────────────┘     └──────────────────────┘
 ```
 
 ---
@@ -31,11 +31,11 @@ To ensure high availability even under network congestion or API rate limits, Ja
 
 ```mermaid
 graph TD
-    A[User Agronomy Query] --> B{Try Groq Llama-3-70B API}
-    B -- Success --> C[Generate RAG Response]
-    B -- Error / Rate Limit --> D{Try Gemini 1.5 Flash API}
+    A["User Agronomy Query"] --> B{"Try Groq Llama-3-70B API"}
+    B -- Success --> C["Generate RAG Response"]
+    B -- Error / Rate Limit --> D{"Try Gemini 1.5 Flash API"}
     D -- Success --> C
-    D -- Error / Offline --> E[Rule-Based Agronomic Knowledge Engine]
+    D -- Error / Offline --> E["Rule-Based Agronomic Knowledge Engine"]
     E --> C
 ```
 
@@ -45,25 +45,37 @@ graph TD
 
 ---
 
-## 🎙️ Speech & Multilingual Capabilities
+## 🎙️ Speech-to-Text (STT) & Decibel Motion Animation
 
-### Supported Languages
-- 🇮🇳 **Bengali (বাংলা)**: Complete UI & Speech translation.
-- 🇮🇳 **Hindi (हिन्दी)**: Native agricultural vocabulary & voice response.
-- 🇬🇧 **English**: Technical scientific terminology.
+- **Package**: `speech_to_text: ^7.4.0`
+- **Decibel Level Streaming**: Captures real-time voice volume decibels via `onSoundLevelChange: (double level)` callback.
+- **Audio Motion Pulse Animation (`_AudioPulsingMicButton`)**: The microphone button dynamically scales up/down in real-time based on the farmer's speech volume intensity, surrounded by an expanding glowing red aura ring.
+- **Overflow-Free Active Listening Banner**: Clean `Flexible` text widget displaying active language status without screen truncation (`🎙️ Listening in Bengali... Speak now!`).
 
-### Audio Pipeline Flow
-1. **Audio Capture**: Mobile microphone records farmer query via `speech_to_text` Flutter package.
-2. **Context Injection**: Live farm state (Current Crop, Growth Stage, Soil Type, Recent Rainfall) is appended to the RAG prompt context:
-   ```json
-   {
-     "crop": "Paddy Rice",
-     "growth_stage": "Mid-Season (Reproductive)",
-     "soil_type": "Clay Loam",
-     "recent_rain_mm": 8.2
-   }
-   ```
-3. **Synthesis**: Response is spoken back using Flutter TTS (`flutter_tts`) tuned to native pitch and speech rate.
+---
+
+## 🔊 Text-to-Speech (TTS) Audio Read-Aloud Engine
+
+- **Package**: `flutter_tts: ^4.2.5`
+- **Native Audio Playback Button**: Every JalSathi AI bot message bubble includes an interactive **`Listen 🔊`** button.
+- **Language Locale Mapping**:
+  - 🇧🇩 **Bengali**: `bn-IN`
+  - 🇮🇳 **Hindi**: `hi-IN`
+  - 🇬🇧 **English**: `en-US`
+- **Markdown Synthesizer Sanitization**: Automatically strips Markdown symbols (`*`, `#`, `-`) and normalizes line breaks before speech output for smooth, natural voice narration tuned to farmer speech rates ($0.45\times$).
+
+---
+
+## 🌐 Dynamic Multi-lingual UI Localization
+
+Whenever the farmer changes the language selector dropdown, the screen dynamically updates all UI text:
+
+| Element | English 🇬🇧 | Bengali (বাংলা) 🇧🇩 | Hindi (हिंदी) 🇮🇳 |
+|---|---|---|---|
+| **Greeting** | `Hello Arpan! 👋` | `নমস্কার Arpan! 👋` | `नमस्ते Arpan! 👋` |
+| **Intro Subtitle** | `I am your JalSathi AI companion...` | `আমি আপনার জলসাথী AI সহকারী...` | `मैं आपका जलसाथी AI सहायक हूँ...` |
+| **Suggestion Header** | `💡 Quick Suggestion Questions:` | `💡 দ্রুত পরামর্শমূলক প্রশ্নসমূহ:` | `💡 त्वरित सुझाव प्रश्न:` |
+| **Sample Question** | `How to control Stem Borer in Paddy?` | `ধানে কান্ড পচা ও মাজরা পোকা দমন করার উপায় কী?` | `धान में तना छेदक (Stem Borer) कीट नियंत्रण कैसे करें?` |
 
 ---
 
@@ -72,4 +84,6 @@ graph TD
 - **Backend RAG Service**: [`app/services/rag_service.py`](file:///d:/jaldrishti/jaldrishti-backend/app/services/rag_service.py)
 - **Vector DB Ingestion**: [`app/services/vector_db_service.py`](file:///d:/jaldrishti/jaldrishti-backend/app/services/vector_db_service.py)
 - **API Endpoint**: `POST /api/v1/jalsathi/chat`
-- **Mobile Screen**: [`lib/screens/jalsathi_chat_screen.dart`](file:///d:/jaldrishti/jaldrishti_mobile/lib/screens/jalsathi_chat_screen.dart)
+- **Mobile Chat Provider**: [`lib/providers/chat_provider.dart`](file:///d:/jaldrishti/jaldrishti_mobile/lib/providers/chat_provider.dart)
+- **Mobile Screen**: [`lib/screens/chat_screen.dart`](file:///d:/jaldrishti/jaldrishti_mobile/lib/screens/chat_screen.dart)
+- **Chat Bubble Component**: [`lib/widgets/chat_bubble.dart`](file:///d:/jaldrishti/jaldrishti_mobile/lib/widgets/chat_bubble.dart)
