@@ -55,33 +55,33 @@
 
 ```mermaid
 graph TD
-    subgraph Mobile Client (Flutter)
-        UI[Main Navigation Screen]
-        Dash[Modular Home Dashboard]
-        PestUI[Pest & Disease Advisory]
-        AIUI[JalSathi AI Voice Chat]
-        State[Irrigation & Auth Provider]
+    subgraph "Mobile Client - Flutter"
+        UI["Main Navigation Screen"]
+        Dash["Modular Home Dashboard"]
+        PestUI["Pest & Disease Advisory"]
+        AIUI["JalSathi AI Voice Chat"]
+        State["Irrigation & Auth Provider"]
     end
 
-    subgraph Backend API (FastAPI)
-        Router[API v1 Routers]
-        HydroEngine[Penman-Monteith Engine]
-        SoilModel[Soil Water Bucket Model]
-        PestEngine[Pest & Disease Risk Engine]
-        RAGEngine[JalSathi RAG Engine]
+    subgraph "Backend API - FastAPI"
+        Router["API v1 Routers"]
+        HydroEngine["Penman-Monteith Engine"]
+        SoilModel["Soil Water Bucket Model"]
+        PestEngine["Pest & Disease Risk Engine"]
+        RAGEngine["JalSathi RAG Engine"]
     end
 
-    subgraph External Services & Storage
-        OM[Open-Meteo Weather API]
-        SG[ISRIC SoilGrids Satellite API]
-        DB[(Supabase PostgreSQL Pooler)]
-        Cache[(Redis Cloud Cache)]
-        Chroma[(ChromaDB Vector Store)]
-        LLM[Groq / Gemini AI Model]
+    subgraph "External Services & Storage"
+        OM["Open-Meteo Weather API"]
+        SG["ISRIC SoilGrids Satellite API"]
+        DB["Supabase PostgreSQL Pooler"]
+        Cache["Redis Cloud Cache"]
+        Chroma["ChromaDB Vector Store"]
+        LLM["Groq / Gemini AI Model"]
     end
 
     UI --> State
-    State -->|HTTP POST| Router
+    State --> Router
     Router --> HydroEngine
     Router --> SoilModel
     Router --> PestEngine
