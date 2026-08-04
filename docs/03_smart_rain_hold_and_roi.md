@@ -8,7 +8,7 @@ In traditional Indian agriculture, farmers frequently run irrigation pumps based
 2. **Nutrient Leaching**: Excessive water washes soluble nitrogen, phosphorus, and potassium below the effective root zone ($Z_r$).
 3. **Financial & Energy Waste**: Wasteful expenditure on grid electricity tariffs or expensive diesel generator fuel, alongside pump motor wear and tear.
 
-The **Smart Rain Hold Engine** in JalDrishti continuously evaluates upcoming **24–48 hour satellite precipitation forecasts** from Open-Meteo against daily Penman-Monteith soil depletion calculations. When sufficient rainfall is predicted, the engine automatically **overrides pump recommendations**, issue a **Smart Rain Hold alert**, and computes real-time financial and environmental Return on Investment (ROI) telemetry for the farmer.
+The **Smart Rain Hold Engine** in JalDrishti continuously evaluates upcoming **24–48 hour satellite precipitation forecasts** from Open-Meteo against daily Penman-Monteith soil depletion calculations. When sufficient rainfall is predicted, the engine automatically **overrides pump recommendations**, issues a **Smart Rain Hold alert**, and computes real-time financial and environmental Return on Investment (ROI) telemetry for the farmer.
 
 ```text
 ┌─────────────────────────┐    ┌─────────────────────────┐    ┌─────────────────────────┐
@@ -53,9 +53,9 @@ $$P_{\text{upcoming}} = \sum_{d=t+1}^{t+2} P_d \quad [\text{mm}]$$
 
 The **Smart Rain Hold** warning is triggered if upcoming 48-hour rainfall reaches $5.0\text{ mm}$ OR today's rainfall reaches $4.0\text{ mm}$:
 
-$$\text{Trigger\_Active} = (P_{\text{upcoming}} \ge 5.0\text{ mm}) \lor (P_{\text{today}} \ge 4.0\text{ mm})$$
+$$\text{TriggerActive} = (P_{\text{upcoming}} \ge 5.0\text{ mm}) \lor (P_{\text{today}} \ge 4.0\text{ mm})$$
 
-When `Trigger_Active` evaluates to **True**:
+When `TriggerActive` evaluates to **True**:
 
 1. `rain_hold_active = True`
 2. **Irrigation Schedule Override**: If the soil water bucket model had flagged `needs_irrigation_today = True`, it is forcibly overridden to `False`.
@@ -67,15 +67,15 @@ When `Trigger_Active` evaluates to **True**:
 
 When a required irrigation run is skipped due to incoming rainfall, the system calculates the immediate financial savings for that specific run:
 
-1. **Equivalent Pumping Hours Saved ($T_{\text{saved,hrs}}$)**:
-   $$T_{\text{saved,hrs}} = \max\left( \frac{T_{\text{pump,seconds}}}{3600}, 1.5 \text{ hours} \right)$$
-   *(where $T_{\text{pump,seconds}}$ is the duration that would have been required to apply the gross water depth)*
+1. **Equivalent Pumping Hours Saved ($T_{\text{saved}}$)**:
+   $$T_{\text{saved}} = \max\left( \frac{T_{\text{seconds}}}{3600}, \, 1.5 \text{ hours} \right)$$
+   *(where $T_{\text{seconds}}$ is the pump duration that would have been required to apply the gross water depth)*
 
-2. **Estimated Single-Run Cost Saved ($\text{Cost}_{\text{run,INR}}$)**:
-   $$\text{Cost}_{\text{run,INR}} = \text{round}\left( T_{\text{saved,hrs}} \times ₹80.0 \right) \quad [\text{₹ INR}]$$
+2. **Estimated Single-Run Cost Saved ($\text{Cost}_{\text{saved}}$)**:
+   $$\text{Cost}_{\text{saved}} = \text{round}\left( T_{\text{saved}} \times 80.0 \right) \quad [\text{₹ INR}]$$
 
 3. **Dynamic Advisory Message Generation**:
-   > *"🌧️ SMART RAIN HOLD ACTIVE: Heavy rain ($P_{\text{upcoming}}\text{ mm}$) is forecast in the next 24-48 hours. Skip irrigation today to prevent soil waterlogging and save ~₹$\text{Cost}_{\text{run,INR}}$ in pumping costs!"*
+   > *"🌧️ SMART RAIN HOLD ACTIVE: Heavy rain is forecast in the next 24-48 hours. Skip irrigation today to prevent soil waterlogging and save ~₹240 in pumping costs!"*
 
 ---
 
@@ -85,25 +85,25 @@ To quantify the long-term economic and environmental benefits of precision hydro
 
 #### 1. Cumulative Water Saved ($V_{\text{cum,liters}}$):
 
-$$Gross\_Depth_{\text{effective}} = \begin{cases} Gross\_Water_{\text{mm}} & \text{if } Gross\_Water_{\text{mm}} > 0 \\ 18.5\text{ mm} & \text{otherwise (historical benchmark)} \end{cases}$$
+$$D_{\text{gross,eff}} = \begin{cases} D_{\text{gross,mm}} & \text{if } D_{\text{gross,mm}} > 0 \\ 18.5\text{ mm} & \text{otherwise (historical benchmark)} \end{cases}$$
 
-$$V_{\text{cum,liters}} = \text{round}\left( Gross\_Depth_{\text{effective}} \times \text{Area}_{\text{sqm}} \times (\text{Skipped\_Count} + 3) \right) \quad [\text{Liters}]$$
+$$V_{\text{cum,liters}} = \text{round}\left( D_{\text{gross,eff}} \times \text{Area}_{\text{sqm}} \times (N_{\text{skipped}} + 3) \right) \quad [\text{Liters}]$$
 
 #### 2. Cumulative Pumping Hours Saved ($T_{\text{cum,hrs}}$):
 
-$$T_{\text{cum,hrs}} = \text{round}\left( \frac{V_{\text{cum,liters}}}{Q_{\text{pump}} \times 3600}, 1 \right) \quad [\text{Hours}]$$
+$$T_{\text{cum,hrs}} = \text{round}\left( \frac{V_{\text{cum,liters}}}{Q_{\text{pump}} \times 3600}, \, 1 \right) \quad [\text{Hours}]$$
 
-#### 3. Cumulative Financial Cost Saved ($\text{Savings}_{\text{cum,INR}}$):
+#### 3. Cumulative Financial Cost Saved ($\text{Savings}_{\text{cum}}$):
 
-$$\text{Savings}_{\text{cum,INR}} = \text{round}\left( T_{\text{cum,hrs}} \times ₹80.0 + (\text{Skipped\_Count} \times \text{Cost}_{\text{run,INR}}) \right) \quad [\text{₹ INR}]$$
+$$\text{Savings}_{\text{cum}} = \text{round}\left( T_{\text{cum,hrs}} \times 80.0 + (N_{\text{skipped}} \times \text{Cost}_{\text{saved}}) \right) \quad [\text{₹ INR}]$$
 
-#### 4. Cumulative Carbon Emissions Reduced ($CO_{2,\text{cum,kg}}$):
+#### 4. Cumulative Carbon Emissions Reduced ($CO_{2,\text{cum}}$):
 
-$$CO_{2,\text{cum,kg}} = \text{round}\left( T_{\text{cum,hrs}} \times 2.8\text{ kg } CO_2/\text{hr}, 1 \right) \quad [\text{kg } CO_2]$$
+$$CO_{2,\text{cum}} = \text{round}\left( T_{\text{cum,hrs}} \times 2.8, \, 1 \right) \quad [\text{kg } CO_2]$$
 
 #### 5. Total Skipped Irrigation Runs Count:
 
-$$\text{Skipped\_Runs\_Total} = \text{Skipped\_Count} + 4$$
+$$N_{\text{skipped,total}} = N_{\text{skipped}} + 4$$
 
 ---
 

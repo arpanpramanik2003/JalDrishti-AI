@@ -72,15 +72,15 @@ For each pathogen rule $r$ associated with the active crop:
 
 When both $\text{Match}_T$ and $\text{Match}_{\text{RH}}$ evaluate to **True**:
 
-$$\text{Base\_Score} = 85.0\%$$
+$$S_{\text{base}} = 85.0\%$$
 
 If precipitation $P > 2.0\text{ mm}$ (indicating extended leaf surface wetness):
 
-$$\text{Risk\_Score} = \min\left( \text{Base\_Score} + 10.0\%, \, 99.0\% \right)$$
+$$S_{\text{risk}} = \min\left( S_{\text{base}} + 10.0\%, \, 99.0\% \right)$$
 
 Otherwise:
 
-$$\text{Risk\_Score} = 85.0\%$$
+$$S_{\text{risk}} = 85.0\%$$
 
 ---
 

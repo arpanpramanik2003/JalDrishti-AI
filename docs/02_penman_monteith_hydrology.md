@@ -174,7 +174,7 @@ Where:
 
 When irrigation is triggered, net water depth ($D_i$) is converted into gross depth based on field application efficiency ($\eta_{\text{irrigation}}$):
 
-$$Gross\_Water\_Depth = \frac{Net\_Water\_Depth}{\eta_{\text{irrigation}}}$$
+$$D_{\text{gross}} = \frac{D_{\text{net}}}{\eta_{\text{irrigation}}}$$
 
 #### System Efficiency Map ($\eta_{\text{irrigation}}$):
 
@@ -186,7 +186,7 @@ $$Gross\_Water\_Depth = \frac{Net\_Water\_Depth}{\eta_{\text{irrigation}}}$$
 
 1. **Total Volumetric Water Needed ($V_{\text{liters}}$)**:
    $$\text{Area}_{\text{sqm}} = \text{Area}_{\text{acres}} \times 4046.86 \quad [\text{m}^2]$$
-   $$V_{\text{liters}} = Gross\_Water\_Depth \text{ [mm]} \times \text{Area}_{\text{sqm}}$$
+   $$V_{\text{liters}} = D_{\text{gross}} \times \text{Area}_{\text{sqm}}$$
    *(Note: $1\text{ mm}$ depth over $1\text{ m}^2$ area equals exactly $1\text{ Liter}$ of water)*
 
 2. **Total Pumping Seconds ($T_{\text{seconds}}$)**:
