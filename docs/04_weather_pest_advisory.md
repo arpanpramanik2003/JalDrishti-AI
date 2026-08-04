@@ -1,76 +1,151 @@
 # 🐛 Weather-Based Pest & Disease Early Warning Engine
 
-## 📖 Overview
-Fungal, bacterial, and insect crop pests thrive under specific microclimatic thresholds of relative humidity, temperature, and leaf wetness duration. The **Weather-Based Pest Advisory Engine** in JalDrishti cross-references real-time Open-Meteo satellite weather telemetry with agronomic pathogen proliferation rules to deliver preventive disease advisories before visible field infection occurs.
+## 📖 1. Overview & Agronomic Importance
+
+Fungal spores, bacterial blights, and insect larvae proliferate under precise microclimatic windows of ambient temperature, relative humidity ($\text{RH}$), and leaf surface wetness. Traditionally, Indian farmers detect pest infestations only after visual damage appears (such as leaf blast lesions or whorl feeding holes), when crop yield loss is already irreversible.
+
+The **Weather-Based Pest & Disease Early Warning Engine** in JalDrishti continuously evaluates real-time Open-Meteo satellite weather telemetry against agricultural university epidemiology models (ICAR / SAU **Package of Practices**). By predicting microclimate sporulation windows **before pathogen establishment**, JalDrishti provides preventive chemical dosages and organic bio-control solutions, protecting crop yields while reducing unnecessary pesticide expenditure.
+
+```text
+┌─────────────────────────┐    ┌─────────────────────────┐    ┌─────────────────────────┐
+│  Microclimate Weather   │ ──>│ Epidemiological Match   │ ──>│ Calculate Risk Score    │
+│  (Temp, Humidity, Rain) │    │ (Temp & RH Thresholds)  │    │ & Severity Rating       │
+└─────────────────────────┘    └─────────────────────────┘    └────────────┬────────────┘
+                                                                           │
+┌─────────────────────────┐    ┌─────────────────────────┐                 │
+│ Actionable Pest Card    │ <──│ Chemical & Organic Bio- │ <─────────────────┘
+│ (PestAdvisoryScreen)    │    │ Treatment Advisories    │
+└─────────────────────────┘    └─────────────────────────┘
+```
 
 ---
 
-## 🦠 Crop Pathogen Rule Matrix
+## 🛰️ 2. Microclimate Input Parameters
 
-| Crop | Disease / Pest Name | Pathogen Scientific Name | Weather Trigger Thresholds | Severity Risk |
+The epidemiological risk engine evaluates daily meteorological telemetry against crop-specific pathogen models:
+
+| Variable Name | Source / Provider | Code Location | Unit / Format | Agronomic Function |
 |---|---|---|---|---|
-| 🌾 **Paddy** | **Paddy Blast** | *Magnaporthe oryzae* | Humidity $> 85\%$, Temp $20^\circ\text{C} - 28^\circ\text{C}$, Rain $> 1\text{ mm}$ | **HIGH / CRITICAL** |
-| 🌾 **Paddy** | **Sheath Blight** | *Rhizoctonia solani* | Humidity $> 88\%$, Temp $28^\circ\text{C} - 32^\circ\text{C}$ | **HIGH** |
-| 🥔 **Potato** | **Late Blight** | *Phytophthora infestans* | Humidity $> 90\%$, Temp $12^\circ\text{C} - 22^\circ\text{C}$, Rain $> 2\text{ mm}$ | **CRITICAL** |
-| 🌾 **Wheat** | **Yellow (Stripe) Rust** | *Puccinia striiformis* | Humidity $> 80\%$, Temp $10^\circ\text{C} - 18^\circ\text{C}$ | **HIGH** |
-| 🌻 **Mustard** | **Mustard Aphids** | *Lipaphis erysimi* | Humidity $60\% - 75\%$, Temp $15^\circ\text{C} - 24^\circ\text{C}$, Rain $= 0\text{ mm}$ | **MODERATE / HIGH** |
-| 🌽 **Maize** | **Fall Armyworm** | *Spodoptera frugiperda* | Humidity $> 70\%$, Temp $24^\circ\text{C} - 32^\circ\text{C}$ | **HIGH** |
+| **`max_temp_c`** | Open-Meteo Satellite Feed | [`app/services/weather_service.py`](file:///d:/jaldrishti/jaldrishti-backend/app/services/weather_service.py) | $^\circ\text{C}$ | Daily maximum air temperature |
+| **`min_temp_c`** | Open-Meteo Satellite Feed | [`app/services/weather_service.py`](file:///d:/jaldrishti/jaldrishti-backend/app/services/weather_service.py) | $^\circ\text{C}$ | Daily minimum air temperature |
+| **`temp_mean`** | Engine Calculation | `(max_temp + min_temp) / 2` | $^\circ\text{C}$ | Mean daily thermal window for spore germination |
+| **`humidity_percent`** | Open-Meteo Satellite Feed | [`app/services/weather_service.py`](file:///d:/jaldrishti/jaldrishti-backend/app/services/weather_service.py) | $\%$ | Relative humidity (RH) at 2m height |
+| **`precipitation_mm`** | Open-Meteo Satellite Feed | [`app/services/weather_service.py`](file:///d:/jaldrishti/jaldrishti-backend/app/services/weather_service.py) | $\text{mm}$ | Rainfall depth (amplifies fungal leaf wetness) |
+| **`crop_id`** | Farm Plot Profile | PostgreSQL (`farm_plots`) | `String` | Target crop identifier (`paddy_rice`, `potato`, etc.) |
 
 ---
 
-## 🔬 Pest Risk Evaluation Algorithm
+## 🔬 3. Agronomic Pathogen Rule Matrix
+
+JalDrishti embeds verified epidemiological rules for major Indian cash and food crops within [`app/engine/pest_disease_engine.py`](file:///d:/jaldrishti/jaldrishti-backend/app/engine/pest_disease_engine.py):
+
+| Target Crop | Pathogen / Disease Name | Category | Temp Window | Min RH | Severity | Symptoms & Diagnostics |
+|---|---|---|---|---|---|---|
+| 🌾 **Paddy** | **Rice Blast** (*Pyricularia oryzae*) | Fungal Disease | $18^\circ\text{C} - 28^\circ\text{C}$ | $\ge 80\%$ | **HIGH** | Spindle-shaped brown leaf lesions with grayish centers. |
+| 🌾 **Paddy** | **Sheath Blight** (*Rhizoctonia solani*) | Fungal Disease | $28^\circ\text{C} - 35^\circ\text{C}$ | $\ge 85\%$ | **CRITICAL** | Oval greenish-gray lesions on leaf sheaths near water line. |
+| 🌾 **Paddy** | **Yellow Stem Borer** (*Scirpophaga incertulas*) | Insect Pest | $25^\circ\text{C} - 36^\circ\text{C}$ | $\ge 60\%$ | **MEDIUM** | Dead hearts in vegetative stage; empty white panicles in bloom. |
+| 🥔 **Potato** | **Late Blight** (*Phytophthora infestans*) | Fungal Blight | $10^\circ\text{C} - 22^\circ\text{C}$ | $\ge 85\%$ | **CRITICAL** | Water-soaked dark leaf lesions with white morning dew mildew. |
+| 🌾 **Wheat** | **Yellow / Stripe Rust** (*Puccinia striiformis*) | Fungal Rust | $8^\circ\text{C} - 20^\circ\text{C}$ | $\ge 75\%$ | **HIGH** | Bright yellow pustules arranged in linear stripes along leaf veins. |
+| 🌻 **Mustard** | **Mustard Aphid** (*Lipaphis erysimi*) | Sucking Pest | $15^\circ\text{C} - 26^\circ\text{C}$ | $\ge 55\%$ | **HIGH** | Green/black sap-sucking clusters on inflorescence & leaf curls. |
+| 🌽 **Maize** | **Fall Armyworm** (*Spodoptera frugiperda*) | Lepidopteran Pest | $22^\circ\text{C} - 34^\circ\text{C}$ | $\ge 65\%$ | **CRITICAL** | Ragged whorl feeding holes & heavy frass in central funnels. |
+
+---
+
+## 🧮 4. Epidemiological Risk Evaluation & Scoring Algorithm
+
+The evaluation algorithm executes daily for every active crop plot:
+
+### Step 1: Thermal Mean Calculation
+$$T_{\text{mean}} = \frac{T_{\text{max}} + T_{\text{min}}}{2} \quad [^\circ\text{C}]$$
+
+### Step 2: Microclimate Matching Rules
+
+For each pathogen rule $r$ associated with the active crop:
+
+1. **Temperature Match ($\text{Match}_T$)**:
+   $$\text{Match}_T = T_{\text{min,rule}} \le T_{\text{mean}} \le T_{\text{max,rule}}$$
+
+2. **Humidity Match ($\text{Match}_{\text{RH}}$)**:
+   $$\text{Match}_{\text{RH}} = \text{RH}_{\text{actual}} \ge \text{RH}_{\text{min,rule}}$$
+
+### Step 3: Dynamic Risk Scoring & Leaf Wetness Amplification
+
+When both $\text{Match}_T$ and $\text{Match}_{\text{RH}}$ evaluate to **True**:
+
+$$\text{Base\_Score} = 85.0\%$$
+
+If precipitation $P > 2.0\text{ mm}$ (indicating extended leaf surface wetness):
+
+$$\text{Risk\_Score} = \min\left( \text{Base\_Score} + 10.0\%, \, 99.0\% \right)$$
+
+Otherwise:
+
+$$\text{Risk\_Score} = 85.0\%$$
+
+---
+
+## 💊 5. Chemical & Bio-Organic Treatment Recommendations
+
+When a pathogen risk threshold is breached, the engine supplies paired **Chemical** and **Organic Bio-Control** treatment procedures:
+
+### 1. Rice Blast (*Pyricularia oryzae*)
+- **Chemical Treatment**: Tricyclazole 75 WP @ $0.6\text{ g/L}$ water ($120\text{ g/acre}$) OR Isoprothiolane 40 EC @ $1.5\text{ mL/L}$.
+- **Organic Bio-Treatment**: Spray *Pseudomonas fluorescens* @ $10\text{ g/L}$ OR Neem Oil ($10,000\text{ ppm}$) @ $3\text{ mL/L}$.
+- **Preventive Cultural Tip**: Avoid excessive Nitrogen fertilizer applications during overcast, high-humidity weather.
+
+### 2. Potato Late Blight (*Phytophthora infestans*)
+- **Chemical Treatment**: Prophylactic: Mancozeb 75 WP @ $2.5\text{ g/L}$. Curative: Cymoxanil 8% + Mancozeb 64% WP @ $3.0\text{ g/L}$.
+- **Organic Bio-Treatment**: Copper Oxychloride 50 WP @ $3.0\text{ g/L}$ OR *Trichoderma viride* foliar spray.
+- **Preventive Cultural Tip**: Earthing up soil to cover exposed tubers and destroying infected plant haulms.
+
+### 3. Maize Fall Armyworm (*Spodoptera frugiperda*)
+- **Chemical Treatment**: Emamectin Benzoate 5% SG @ $0.4\text{ g/L}$ OR Spinetoram 11.7% SC @ $0.5\text{ mL/L}$ directed directly into plant whorls.
+- **Organic Bio-Treatment**: Apply *Metarhizium anisopliae* @ $5.0\text{ g/L}$ OR sand + neem cake mixture ($9:1$ ratio) into leaf funnels.
+- **Preventive Cultural Tip**: Deep summer plowing to expose pupae to predatory birds.
+
+---
+
+## 📊 6. End-to-End Execution Flowchart
 
 ```mermaid
 graph TD
-    A[Fetch Real-time Microclimate Weather] --> B[Extract Humidity, Temp Max/Min, Rainfall]
-    B --> C[Lookup Crop Pathogen Database Rules]
-    C --> D{Do Humidity & Temp match Sporulation Window?}
-    D -- Yes --> E{Is Rain Present?}
-    E -- Yes --> F[Assign Severity: CRITICAL / HIGH]
-    E -- No --> G[Assign Severity: MODERATE]
-    D -- No --> H[Assign Severity: LOW / NO RISK]
-    F --> I[Generate Chemical Spray & Organic Bio-Pesticide Advisory]
-    G --> I
+    A["Request: Plot ID & Coordinates"] --> B["Fetch Open-Meteo Weather: Temp, RH & Rain"]
+    A --> C["Identify Active Crop (paddy_rice, potato, etc.)"]
+
+    B & C --> D["PestDiseaseEngine: Calculate T_mean = (T_max + T_min)/2"]
+    D --> E["Lookup Epidemiological Rules for Crop"]
+
+    E --> F{"Does T_mean fall in [min_temp, max_temp]<br/>AND RH >= min_humidity?"}
+    F -- No --> G["No Active Risk: Return Empty Advisory List"]
+    F -- Yes --> H["Risk Triggered: Set Base Risk Score = 85%"]
+
+    H --> I{"Is Precipitation > 2.0 mm?"}
+    I -- Yes --> J["Add +10% Leaf Wetness Bonus (Cap at 99%)"]
+    I -- No --> K["Maintain 85% Risk Score"]
+
+    J & K --> L["Attach Chemical Dosages, Organic Bio-Treatments & Symptoms"]
+    L --> M["Render Mobile PestAdvisoryScreen Cards"]
 ```
 
 ---
 
-## 💊 Bio-Chemical Advisory Output Schema
+## 📱 7. Mobile UI Visual Architecture
 
-When a threat is identified, the backend generates actionable solutions:
+The advisory results are rendered on the Flutter mobile app via [`PestAdvisoryScreen`](file:///d:/jaldrishti/jaldrishti_mobile/lib/screens/pest_advisory_screen.dart):
 
-### Example Output for Potato Late Blight:
-```json
-{
-  "pest_name": "Potato Late Blight",
-  "pathogen": "Phytophthora infestans",
-  "severity": "CRITICAL",
-  "risk_score": 92,
-  "trigger_reason": "High humidity (93%) and cool temperatures (16°C) present ideal conditions for Late Blight sporangia germination.",
-  "symptoms_to_inspect": "Water-soaked dark lesions on leaf tips and white cottony fungal growth on lower leaf surfaces.",
-  "chemical_treatment": {
-    "fungicide": "Mancozeb 75% WP or Ridomil Gold (Metalaxyl + Mancozeb)",
-    "dosage": "2.5 g / Liter of water",
-    "spray_interval": "Every 7 days during high humidity"
-  },
-  "organic_treatment": {
-    "solution": "Copper Oxychloride or Trichoderma viride bio-fungicide",
-    "dosage": "5.0 g / Liter of water",
-    "preventive_notes": "Ensure proper field drainage and avoid overhead sprinkler irrigation."
-  }
-}
-```
+1. **Severity Risk Badges**:
+   - **`CRITICAL`** (Red `#EF4444`): Immediate outbreak warning requiring curative spray within 24 hours.
+   - **`HIGH`** (Amber `#F59E0B`): Favorable sporulation microclimate; preventive spray advised.
+   - **`MEDIUM`** (Blue `#38BDF8`): Moderate insect/pathogen activity.
+2. **Interactive Treatment Selector**:
+   - Toggle between **Chemical Spray Dosage** and **Organic Bio-Pesticide** tabs.
+3. **Symptom Field Checklist**:
+   - Clear diagnostic descriptions assisting farmers in field visual inspection.
 
 ---
 
-## 📱 Mobile Screen Implementation
+## 💻 8. Code Implementation Reference
 
-- **[`PestAdvisoryScreen`](file:///d:/jaldrishti/jaldrishti_mobile/lib/screens/pest_advisory_screen.dart)**: Accessible via the App Drawer. Features severity color-coded alert badges (Red = Critical, Amber = High, Green = Low), symptom field inspection checklists, and chemical vs organic spray toggles.
-
----
-
-## 💻 Code Reference
-
-- **Pest Science Engine**: [`app/engine/pest_disease_engine.py`](file:///d:/jaldrishti/jaldrishti-backend/app/engine/pest_disease_engine.py)
-- **API Endpoint**: `POST /api/v1/crops/pest-advisory`
-- **Mobile Screen**: [`lib/screens/pest_advisory_screen.dart`](file:///d:/jaldrishti/jaldrishti_mobile/lib/screens/pest_advisory_screen.dart)
+- **Pest & Disease Science Engine**: [`app/engine/pest_disease_engine.py`](file:///d:/jaldrishti/jaldrishti-backend/app/engine/pest_disease_engine.py)
+- **API Endpoint Handler**: [`app/api/v1/endpoints/crops.py`](file:///d:/jaldrishti/jaldrishti-backend/app/api/v1/endpoints/crops.py)
+- **Mobile Pest Advisory Screen**: [`lib/screens/pest_advisory_screen.dart`](file:///d:/jaldrishti/jaldrishti_mobile/lib/screens/pest_advisory_screen.dart)
