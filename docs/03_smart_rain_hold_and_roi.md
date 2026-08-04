@@ -68,11 +68,11 @@ When `TriggerActive` evaluates to **True**:
 When a required irrigation run is skipped due to incoming rainfall, the system calculates the immediate financial savings for that specific run:
 
 1. **Equivalent Pumping Hours Saved ($T_{\text{saved}}$)**:
-   $$T_{\text{saved}} = \max\left( \frac{T_{\text{seconds}}}{3600}, \, 1.5 \text{ hours} \right)$$
-   *(where $T_{\text{seconds}}$ is the pump duration that would have been required to apply the gross water depth)*
+   $$T_{\text{saved}} = \max\left( \frac{T_{\text{seconds}}}{3600}, \, 1.5 \right) \quad [\text{Hours}]$$
+   *(where $T_{\text{seconds}}$ is the pump duration required to apply gross water depth)*
 
-2. **Estimated Single-Run Cost Saved ($\text{Cost}_{\text{saved}}$)**:
-   $$\text{Cost}_{\text{saved}} = \text{round}\left( T_{\text{saved}} \times 80.0 \right) \quad [\text{₹ INR}]$$
+2. **Estimated Single-Run Cost Saved ($C_{\text{run}}$)**:
+   $$C_{\text{run}} = \text{round}(T_{\text{saved}} \times 80) \quad [\text{INR}]$$
 
 3. **Dynamic Advisory Message Generation**:
    > *"🌧️ SMART RAIN HOLD ACTIVE: Heavy rain is forecast in the next 24-48 hours. Skip irrigation today to prevent soil waterlogging and save ~₹240 in pumping costs!"*
@@ -83,27 +83,27 @@ When a required irrigation run is skipped due to incoming rainfall, the system c
 
 To quantify the long-term economic and environmental benefits of precision hydrological scheduling, JalDrishti computes a cumulative seasonal ROI matrix:
 
-#### 1. Cumulative Water Saved ($V_{\text{cum,liters}}$):
+#### 1. Cumulative Water Saved ($V_{\text{cum}}$):
 
-$$D_{\text{gross,eff}} = \begin{cases} D_{\text{gross,mm}} & \text{if } D_{\text{gross,mm}} > 0 \\ 18.5\text{ mm} & \text{otherwise (historical benchmark)} \end{cases}$$
+$$D_{\text{eff}} = \begin{cases} D_{\text{gross}} & \text{if } D_{\text{gross}} > 0 \\ 18.5\text{ mm} & \text{otherwise (historical benchmark)} \end{cases}$$
 
-$$V_{\text{cum,liters}} = \text{round}\left( D_{\text{gross,eff}} \times \text{Area}_{\text{sqm}} \times (N_{\text{skipped}} + 3) \right) \quad [\text{Liters}]$$
+$$V_{\text{cum}} = \text{round}\left( D_{\text{eff}} \times \text{Area}_{\text{sqm}} \times (N_{\text{skipped}} + 3) \right) \quad [\text{Liters}]$$
 
-#### 2. Cumulative Pumping Hours Saved ($T_{\text{cum,hrs}}$):
+#### 2. Cumulative Pumping Hours Saved ($T_{\text{cum}}$):
 
-$$T_{\text{cum,hrs}} = \text{round}\left( \frac{V_{\text{cum,liters}}}{Q_{\text{pump}} \times 3600}, \, 1 \right) \quad [\text{Hours}]$$
+$$T_{\text{cum}} = \text{round}\left( \frac{V_{\text{cum}}}{Q_{\text{pump}} \times 3600}, \, 1 \right) \quad [\text{Hours}]$$
 
-#### 3. Cumulative Financial Cost Saved ($\text{Savings}_{\text{cum}}$):
+#### 3. Cumulative Financial Cost Saved ($S_{\text{cum}}$):
 
-$$\text{Savings}_{\text{cum}} = \text{round}\left( T_{\text{cum,hrs}} \times 80.0 + (N_{\text{skipped}} \times \text{Cost}_{\text{saved}}) \right) \quad [\text{₹ INR}]$$
+$$S_{\text{cum}} = \text{round}\left( T_{\text{cum}} \times 80 + (N_{\text{skipped}} \times C_{\text{run}}) \right) \quad [\text{INR}]$$
 
-#### 4. Cumulative Carbon Emissions Reduced ($CO_{2,\text{cum}}$):
+#### 4. Cumulative Carbon Emissions Reduced ($E_{\text{CO2}}$):
 
-$$CO_{2,\text{cum}} = \text{round}\left( T_{\text{cum,hrs}} \times 2.8, \, 1 \right) \quad [\text{kg } CO_2]$$
+$$E_{\text{CO2}} = \text{round}\left( T_{\text{cum}} \times 2.8, \, 1 \right) \quad [\text{kg CO}_2]$$
 
-#### 5. Total Skipped Irrigation Runs Count:
+#### 5. Total Skipped Irrigation Runs Count ($N_{\text{total}}$):
 
-$$N_{\text{skipped,total}} = N_{\text{skipped}} + 4$$
+$$N_{\text{total}} = N_{\text{skipped}} + 4$$
 
 ---
 
