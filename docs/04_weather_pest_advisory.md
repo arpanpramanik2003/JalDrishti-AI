@@ -62,25 +62,25 @@ $$T_{\text{mean}} = \frac{T_{\text{max}} + T_{\text{min}}}{2} \quad [^\circ\text
 
 For each pathogen rule $r$ associated with the active crop:
 
-1. **Temperature Match ($\text{Match}_T$)**:
-   $$\text{Match}_T = T_{\text{min,rule}} \le T_{\text{mean}} \le T_{\text{max,rule}}$$
+1. **Temperature Match ($M_T$)**:
+   $$M_T = (T_{\text{min}} \le T_{\text{mean}} \le T_{\text{max}})$$
 
-2. **Humidity Match ($\text{Match}_{\text{RH}}$)**:
-   $$\text{Match}_{\text{RH}} = \text{RH}_{\text{actual}} \ge \text{RH}_{\text{min,rule}}$$
+2. **Humidity Match ($M_{\text{RH}}$)**:
+   $$M_{\text{RH}} = (\text{RH} \ge \text{RH}_{\text{min}})$$
 
 ### Step 3: Dynamic Risk Scoring & Leaf Wetness Amplification
 
-When both $\text{Match}_T$ and $\text{Match}_{\text{RH}}$ evaluate to **True**:
+When both $M_T$ and $M_{\text{RH}}$ evaluate to **True**:
 
-$$S_{\text{base}} = 85.0\%$$
+$$S_{\text{base}} = 85$$
 
 If precipitation $P > 2.0\text{ mm}$ (indicating extended leaf surface wetness):
 
-$$S_{\text{risk}} = \min\left( S_{\text{base}} + 10.0\%, \, 99.0\% \right)$$
+$$S_{\text{risk}} = \min(S_{\text{base}} + 10, \, 99) \quad [\%]$$
 
 Otherwise:
 
-$$S_{\text{risk}} = 85.0\%$$
+$$S_{\text{risk}} = 85 \quad [\%]$$
 
 ---
 
