@@ -282,3 +282,24 @@ async def get_irrigation_recommendation(payload: IrrigationRequest, db: Session 
         weather_summary=weather_summary,
         daily_breakdown=daily_metrics
     )
+
+@router.get("/history/{plot_id}")
+def get_irrigation_history(plot_id: int, db: Session = Depends(get_db)):
+    """
+    Returns historical logged irrigation events for a specific farm plot.
+    """
+    logs = db.query(IrrigationLog).filter(
+        IrrigationLog.farm_plot_id == plot_id
+    ).order_by(IrrigationLog.created_at.desc()).all()
+    
+    return [
+        {
+            "id": log.id,
+            "farm_plot_id": log.farm_plot_id,
+            "applied_mm": log.applied_mm,
+            "applied_date": log.applied_date,
+            "notes": log.notes or "Pump Irrigation Session",
+            "created_at": log.created_at.isoformat() if log.created_at else None
+        }
+        for log in logs
+    ]
