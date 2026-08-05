@@ -887,8 +887,16 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
         titleSpacing: 0,
         title: Row(
           children: [
-            const SizedBox(width: 8),
-            Icon(LucideIcons.droplet, color: iconColor, size: 22),
+            const SizedBox(width: 6),
+            ClipOval(
+              child: Image.asset(
+                'assets/icons/android-chrome-192x192.png',
+                height: 26,
+                width: 26,
+                fit: BoxFit.cover,
+                errorBuilder: (ctx, err, stack) => Icon(LucideIcons.droplet, color: iconColor, size: 22),
+              ),
+            ),
             const SizedBox(width: 8),
             Text(
               'JalDrishti',

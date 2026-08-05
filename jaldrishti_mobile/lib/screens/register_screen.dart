@@ -77,6 +77,24 @@ class _RegisterScreenState extends State<RegisterScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  margin: const EdgeInsets.only(bottom: 12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF0284C7).withValues(alpha: 0.2),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: const Color(0xFF38BDF8), width: 1.5),
+                  ),
+                  child: ClipOval(
+                    child: Image.asset(
+                      'assets/icons/android-chrome-192x192.png',
+                      height: 48,
+                      width: 48,
+                      fit: BoxFit.cover,
+                      errorBuilder: (ctx, err, stack) => const Icon(LucideIcons.droplets, size: 40, color: Color(0xFF38BDF8)),
+                    ),
+                  ),
+                ),
                 Text(
                   'Create Account',
                   style: GoogleFonts.outfit(

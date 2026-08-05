@@ -46,15 +46,19 @@ class AppDrawer extends StatelessWidget {
             ),
             child: Row(
               children: [
-                CircleAvatar(
-                  radius: 26,
-                  backgroundColor: Colors.white24,
-                  child: Text(
-                    userName.substring(0, 1).toUpperCase(),
-                    style: GoogleFonts.outfit(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                Container(
+                  padding: const EdgeInsets.all(2),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: const Color(0xFF38BDF8), width: 2),
+                  ),
+                  child: ClipOval(
+                    child: Image.asset(
+                      'assets/icons/android-chrome-192x192.png',
+                      height: 48,
+                      width: 48,
+                      fit: BoxFit.cover,
+                      errorBuilder: (ctx, err, stack) => Icon(LucideIcons.user, color: accentColor, size: 28),
                     ),
                   ),
                 ),

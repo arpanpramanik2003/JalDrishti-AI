@@ -77,16 +77,20 @@ class _LoginScreenState extends State<LoginScreen> {
                   children: [
                 // App Logo Badge
                 Container(
-                  padding: const EdgeInsets.all(18),
+                  padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: const Color(0xFF0284C7).withValues(alpha: 0.2),
                     shape: BoxShape.circle,
                     border: Border.all(color: const Color(0xFF38BDF8), width: 2),
                   ),
-                  child: const Icon(
-                    LucideIcons.droplets,
-                    size: 48,
-                    color: Color(0xFF38BDF8),
+                  child: ClipOval(
+                    child: Image.asset(
+                      'assets/icons/android-chrome-192x192.png',
+                      height: 56,
+                      width: 56,
+                      fit: BoxFit.cover,
+                      errorBuilder: (ctx, err, stack) => const Icon(LucideIcons.droplets, size: 48, color: Color(0xFF38BDF8)),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 16),

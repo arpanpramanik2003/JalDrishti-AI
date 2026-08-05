@@ -79,10 +79,21 @@ class ProfileScreen extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  CircleAvatar(
-                    radius: 30,
-                    backgroundColor: Colors.white.withValues(alpha: 0.2),
-                    child: const Icon(LucideIcons.user, size: 32, color: Colors.white),
+                  Container(
+                    padding: const EdgeInsets.all(2),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 2),
+                    ),
+                    child: ClipOval(
+                      child: Image.asset(
+                        'assets/icons/android-chrome-192x192.png',
+                        height: 56,
+                        width: 56,
+                        fit: BoxFit.cover,
+                        errorBuilder: (ctx, err, stack) => const Icon(LucideIcons.user, size: 32, color: Colors.white),
+                      ),
+                    ),
                   ),
                   const SizedBox(width: 14),
                   Expanded(

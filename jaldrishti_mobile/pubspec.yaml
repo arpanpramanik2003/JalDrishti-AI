@@ -43,3 +43,10 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/icons/
+    - assets/icons/android-chrome-192x192.png
+    - assets/icons/android-chrome-512x512.png
+    - assets/icons/apple-touch-icon.png
+    - assets/icons/favicon-32x32.png
+    - assets/icons/favicon-16x16.png
