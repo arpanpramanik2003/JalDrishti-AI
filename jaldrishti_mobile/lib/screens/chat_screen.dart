@@ -71,11 +71,17 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   void _sendQuery(String text) {
-    if (text.trim().isEmpty) return;
+    final queryText = text.trim();
+    if (queryText.isEmpty) return;
 
     final auth = context.read<AuthProvider>();
     final farmPlotProvider = context.read<FarmPlotProvider>();
     final chatProvider = context.read<ChatProvider>();
+
+    // Stop speech mic listening if active
+    if (chatProvider.isListening) {
+      chatProvider.stopListening();
+    }
 
     final user = auth.user;
     final profile = user?.profile;
@@ -86,15 +92,27 @@ class _ChatScreenState extends State<ChatScreen> {
     final currentCrop = activePlot?.cropId ?? profile?.interestedCrop;
     final areaAcres = activePlot?.areaAcres ?? profile?.farmAreaAcres;
 
+    // Clear input field immediately
+    _controller.clear();
+
     chatProvider.sendMessage(
-      text: text,
+      text: queryText,
       farmerName: farmerName,
       locationName: locationName,
       currentCrop: currentCrop,
       farmAreaAcres: areaAcres,
     );
 
-    _controller.clear();
+    // Smooth scroll to latest message (reverse ListView)
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          0.0,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    });
   }
 
   @override

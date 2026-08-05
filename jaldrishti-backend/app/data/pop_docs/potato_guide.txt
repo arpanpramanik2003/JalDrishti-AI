@@ -1,0 +1,21 @@
+PACKAGE OF PRACTICES: POTATO (WEST BENGAL & NORTH INDIA)
+
+1. WATER & IRRIGATION MANAGEMENT:
+- Potato crop requires critical irrigation at stolonization (20-25 days after planting) and tuber initiation/bulking (45-60 days after planting).
+- Maintain soil moisture around 65-75% field capacity. Avoid waterlogging to prevent bacterial wilt and tuber rot.
+- Stop irrigation 10-12 days before harvesting to allow skin hardening of tubers.
+
+2. PEST & DISEASE CONTROL:
+- Late Blight (Phytophthora infestans): Causes water-soaked dark brown spots on leaf tips and margins with white fuzzy fungal growth on leaf undersides in cold, foggy morning dew.
+  * Prophylactic Chemical Spray: Mancozeb 75% WP @ 2.5 g/L water (1 kg/acre).
+  * Curative Chemical Spray: Cymoxanil 8% + Mancozeb 64% WP @ 3 g/L water (1.2 kg/acre) OR Dimethomorph 50% WP @ 1 g/L.
+  * Organic/Bio Treatment: Spray Copper Oxychloride 50% WP @ 3 g/L or foliar application of Trichoderma viride.
+  * Preventive Tip: Earthing up soil around plants to cover tubers; destroy infected plant haulms.
+- Potato Aphid & Whitefly: Sucking pests transmitting viral leaf roll.
+  * Chemical Control: Imidacloprid 17.8% SL @ 50 mL/acre OR Thiamethoxam 25% WG @ 80 g/acre.
+  * Organic Control: Neem Oil (10,000 ppm) @ 3 mL/L water.
+
+3. FERTILIZER APPLICATION:
+- Recommended NPK Dosage: 80:60:80 kg/acre.
+- Apply 50% Nitrogen and 100% Phosphorus & Potassium as basal dose at planting.
+- Apply remaining 50% Nitrogen during earthing up at 30 days after planting.

@@ -1,0 +1,18 @@
+PACKAGE OF PRACTICES: WHEAT (NORTH & EAST INDIA)
+
+1. WATER & IRRIGATION MANAGEMENT:
+- Crown Root Initiation (CRI) stage at 20-25 days after sowing is the SINGLE MOST CRITICAL stage for irrigation. Water stress at CRI causes severe yield reduction up to 30%.
+- Other critical irrigation stages: Jointing stage (40-45 DAS), Flowering stage (60-65 DAS), and Milk/Grain filling stage (80-85 DAS).
+- Total water requirement: 4-6 light irrigations of 5-6 cm depth.
+
+2. PEST & DISEASE CONTROL:
+- Stripe / Yellow Rust (Puccinia striiformis): Bright yellow pustules arranged in linear stripes along leaf veins during cold, humid winter weather.
+  * Chemical Spray: Propiconazole 25% EC @ 1 mL/L water (200 mL/acre) OR Tebuconazole 25.9% EC @ 1.5 mL/L water.
+  * Organic/Bio Treatment: Foliar spray of cow urine (10%) mixed with fermented sour buttermilk.
+- Termites (Microtermes obesi): Sucking root tissue causing drying of tillers in light soils.
+  * Chemical Control: Chlorpyrifos 20% EC @ 1.5 L/acre mixed with sand and applied at sowing or first irrigation.
+
+3. FERTILIZER APPLICATION:
+- Recommended NPK Ratio: 60:30:20 kg/acre for irrigated wheat.
+- Apply full dose of Phosphorus, Potassium, and 50% Nitrogen at sowing.
+- Top dress remaining 50% Nitrogen in two equal splits after first (CRI) and second irrigations.
