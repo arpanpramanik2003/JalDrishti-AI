@@ -4,7 +4,16 @@ from pydantic import BaseModel, Field
 from app.services.rag_service import RAGService
 
 router = APIRouter()
-rag_service = RAGService()
+
+# Lazy singleton instance to prevent blocking Uvicorn port binding on startup
+_rag_service_instance: Optional[RAGService] = None
+
+def get_rag_service() -> RAGService:
+    global _rag_service_instance
+    if _rag_service_instance is None:
+        print("[Info] Lazy-initializing RAG Engine & Vector Store...")
+        _rag_service_instance = RAGService()
+    return _rag_service_instance
 
 class ChatRequest(BaseModel):
     query: str = Field(..., min_length=1, max_length=500, example="How do I control Stem Borer in paddy?", description="Farmer query text")
@@ -21,7 +30,8 @@ class ChatResponse(BaseModel):
 
 @router.post("/query", response_model=ChatResponse)
 async def ask_agri_bot(payload: ChatRequest):
-    answer = await rag_service.answer_farmer_query_async(
+    rag = get_rag_service()
+    answer = await rag.answer_farmer_query_async(
         query=payload.query,
         language=payload.language,
         farmer_name=payload.farmer_name,
