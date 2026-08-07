@@ -24,10 +24,10 @@ class ApiConstants {
   static String get defaultBaseUrl {
     if (_envBaseUrl.isNotEmpty) return _envBaseUrl;
     if (!kIsWeb && Platform.isAndroid) {
+      // 127.0.0.1 is used for physical Android devices via USB 'adb reverse tcp:8000 tcp:8000'
       // 10.0.2.2 is host loopback for Android Virtual Device (Emulator)
-      return 'http://10.0.2.2:8000/api/v1';
+      return 'http://127.0.0.1:8000/api/v1';
     }
-    // 127.0.0.1 for iOS simulator, Web, Desktop or Physical device via USB 'adb reverse tcp:8000 tcp:8000'
     return 'http://127.0.0.1:8000/api/v1';
   }
 
@@ -43,14 +43,32 @@ class ApiConstants {
   static Future<void> setBaseUrl(String input) async {
     String formatted = input.trim();
     if (formatted.isNotEmpty) {
+      // 1. Ensure scheme (http:// or https://)
       if (!formatted.startsWith('http://') && !formatted.startsWith('https://')) {
         formatted = 'http://$formatted';
       }
-      // If user typed IP or host without port or path, format properly
-      if (!formatted.contains(':8000') && !formatted.split('//').last.contains(':') && !formatted.endsWith('/api/v1')) {
-        formatted = '$formatted:8000';
+
+      // 2. Format port & path
+      Uri? parsedUri = Uri.tryParse(formatted);
+      if (parsedUri != null) {
+        String host = parsedUri.host;
+        int port = parsedUri.port;
+        String scheme = parsedUri.scheme.isNotEmpty ? parsedUri.scheme : 'http';
+        String path = parsedUri.path;
+
+        // If port is default or not explicitly specified
+        if (!formatted.contains(':$port') && !formatted.contains(':8000') && !formatted.contains(':80') && !formatted.contains(':443')) {
+          if (host.isNotEmpty) {
+            if (path.isEmpty || path == '/') {
+              path = '/api/v1';
+            }
+            formatted = '$scheme://$host:8000$path';
+          }
+        }
       }
-      if (!formatted.endsWith('/api/v1')) {
+
+      // 3. Ensure path ends with /api/v1
+      if (!formatted.contains('/api/v1')) {
         if (formatted.endsWith('/')) {
           formatted = '${formatted}api/v1';
         } else {

@@ -47,34 +47,66 @@ class WeatherStatsTab extends StatelessWidget {
       );
     }
 
+    final now = DateTime.now();
+    final todayStr = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // Title Row wrapped with Expanded to prevent horizontal overflow
         Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              '🌦️ 6-Day Predictive Weather & Irrigation Window',
-              style: GoogleFonts.outfit(
-                fontSize: 15,
-                fontWeight: FontWeight.bold,
-                color: textColor,
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '🌦️ 6-Day Predictive Weather',
+                    style: GoogleFonts.outfit(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: textColor,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    'Satellite Evapotranspiration & Rain Forecast',
+                    style: GoogleFonts.inter(
+                      fontSize: 11,
+                      color: subtextColor,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
               ),
             ),
+            const SizedBox(width: 8),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
               decoration: BoxDecoration(
                 color: primaryColor.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: primaryColor.withValues(alpha: 0.3)),
               ),
-              child: Text(
-                'Open-Meteo Satellite',
-                style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.bold, color: primaryColor),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(LucideIcons.satellite, size: 12, color: Color(0xFF38BDF8)),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Open-Meteo',
+                    style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.bold, color: primaryColor),
+                  ),
+                ],
               ),
             ),
           ],
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 14),
+
+        // Forecast List
         ListView.separated(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
@@ -82,7 +114,12 @@ class WeatherStatsTab extends StatelessWidget {
           separatorBuilder: (context, index) => const SizedBox(height: 10),
           itemBuilder: (ctx, idx) {
             final day = dailyBreakdown[idx];
-            final dateStr = (day['date'] as String? ?? '').split('-').skip(1).join('/');
+            final rawDateStr = day['date'] as String? ?? '';
+            final dateStr = rawDateStr.split('-').skip(1).join('/');
+            
+            // Check if this card represents TODAY
+            final isToday = rawDateStr == todayStr || (idx == 0 && (rawDateStr.isEmpty || !rawDateStr.contains('-')));
+
             final tempMax = (day['max_temp_c'] as num?)?.toDouble() ?? 30.0;
             final tempMin = (day['min_temp_c'] as num?)?.toDouble() ?? 22.0;
             final humidity = (day['humidity_percent'] as num?)?.toDouble() ?? 75.0;
@@ -94,71 +131,124 @@ class WeatherStatsTab extends StatelessWidget {
             return Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: cardBg,
+                color: isToday
+                    ? (isDark ? const Color(0xFF16253B) : const Color(0xFFEFF6FF))
+                    : cardBg,
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(
-                  color: isRainy ? const Color(0xFF38BDF8).withValues(alpha: 0.5) : borderColor,
-                  width: isRainy ? 1.5 : 1.0,
+                  color: isToday
+                      ? const Color(0xFF0284C7)
+                      : (isRainy ? const Color(0xFF38BDF8).withValues(alpha: 0.5) : borderColor),
+                  width: isToday ? 2.0 : (isRainy ? 1.5 : 1.0),
                 ),
-                boxShadow: isRainy
+                boxShadow: isToday
                     ? [
                         BoxShadow(
-                          color: const Color(0xFF38BDF8).withValues(alpha: 0.1),
-                          blurRadius: 8,
+                          color: const Color(0xFF0284C7).withValues(alpha: 0.25),
+                          blurRadius: 10,
                           offset: const Offset(0, 3),
                         ),
                       ]
-                    : null,
+                    : (isRainy
+                        ? [
+                            BoxShadow(
+                              color: const Color(0xFF38BDF8).withValues(alpha: 0.1),
+                              blurRadius: 8,
+                              offset: const Offset(0, 3),
+                            ),
+                          ]
+                        : null),
               ),
               child: Column(
                 children: [
                   Row(
                     children: [
-                      Container(
-                        width: 52,
-                        padding: const EdgeInsets.symmetric(vertical: 6),
-                        decoration: BoxDecoration(
-                          color: primaryColor.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Center(
-                          child: Text(
-                            dateStr,
-                            style: GoogleFonts.outfit(
-                              fontSize: 13,
-                              fontWeight: FontWeight.bold,
-                              color: primaryColor,
+                      // Date Badge Box (Highlighted if TODAY)
+                      Column(
+                        children: [
+                          if (isToday)
+                            Container(
+                              margin: const EdgeInsets.only(bottom: 4),
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF0284C7),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                'TODAY',
+                                style: GoogleFonts.inter(
+                                  fontSize: 8,
+                                  fontWeight: FontWeight.w900,
+                                  color: Colors.white,
+                                  letterSpacing: 0.8,
+                                ),
+                              ),
+                            ),
+                          Container(
+                            width: 54,
+                            padding: const EdgeInsets.symmetric(vertical: 6),
+                            decoration: BoxDecoration(
+                              color: isToday
+                                  ? const Color(0xFF0284C7)
+                                  : primaryColor.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Center(
+                              child: Text(
+                                dateStr.isNotEmpty ? dateStr : 'Tdy',
+                                style: GoogleFonts.outfit(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                  color: isToday ? Colors.white : primaryColor,
+                                ),
+                              ),
                             ),
                           ),
-                        ),
+                        ],
                       ),
                       const SizedBox(width: 12),
+
+                      // Weather Icon
                       Icon(
                         isRainy ? LucideIcons.cloudRain : LucideIcons.sun,
                         color: isRainy ? const Color(0xFF38BDF8) : const Color(0xFFF59E0B),
                         size: 22,
                       ),
                       const SizedBox(width: 12),
+
+                      // Temperature & Weather Metrics
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              '${tempMax.toStringAsFixed(0)}° / ${tempMin.toStringAsFixed(0)}° C',
-                              style: GoogleFonts.outfit(
-                                fontSize: 15,
-                                fontWeight: FontWeight.bold,
-                                color: textColor,
-                              ),
+                            Row(
+                              children: [
+                                Text(
+                                  '${tempMax.toStringAsFixed(0)}° / ${tempMin.toStringAsFixed(0)}° C',
+                                  style: GoogleFonts.outfit(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.bold,
+                                    color: textColor,
+                                  ),
+                                ),
+                                if (isToday) ...[
+                                  const SizedBox(width: 6),
+                                  const Icon(LucideIcons.sparkles, size: 12, color: Color(0xFF38BDF8)),
+                                ],
+                              ],
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              '💧 ${humidity.toStringAsFixed(0)}% Humidity  |  💨 ${windKmh.toStringAsFixed(0)} km/h Wind',
+                              '💧 ${humidity.toStringAsFixed(0)}%  |  💨 ${windKmh.toStringAsFixed(0)} km/h',
                               style: GoogleFonts.inter(fontSize: 11, color: subtextColor),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ],
                         ),
                       ),
+
+                      // Rainfall & ET0 Metrics
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
