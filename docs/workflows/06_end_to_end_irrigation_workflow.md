@@ -29,7 +29,7 @@ By replacing traditional static watering routines with dynamic satellite telemet
 ┌─────────────────────────────────────────────────────────────────────────────────────────┐
 │                        PHASE 4: FIELD ANALYTICS & NOTIFICATIONS                         │
 │  5-Tab Analytics Suite      ──>  Cumulative ROI      ──>  Push / In-App Alerts          │
-└─────────────────────────────────────────────────────────────────────────────────────────┘
+└───────────────────────────────────────────┴─────────────────────────────────────────────┘
 ```
 
 ---
@@ -85,9 +85,9 @@ sequenceDiagram
 | **`latitude` & `longitude`** | `Float` | Geolocation coordinates for satellite telemetry fetching |
 | **`crop_id`** | `String` | Crop selection (`paddy_rice`, `potato`, `wheat`, `mustard`, `maize`) |
 | **`sowing_date`** | `YYYY-MM-DD` | Date of planting to calculate dynamic crop growth stage |
-| **`area_acres`** | `Float` | Land size in acres (converted to $\text{m}^2$: $1\text{ acre} = 4046.86\text{ m}^2$) |
+| **`area_acres`** | `Float` | Land size in acres (converted to $\mathrm{m}^2$: $1\text{ acre} = 4046.86\text{ m}^2$) |
 | **`pump_hp`** | `Float` | Pump motor power rating (HP) |
-| **`pump_flow_lps`** | `Float` | Volumetric pump flow rate ($Q_{\text{pump}}$ in Liters per second) |
+| **`pump_flow_lps`** | `Float` | Volumetric pump flow rate ($Q_{\mathrm{pump}}$ in Liters per second) |
 | **`irrigation_method`** | `String` | System efficiency profile: `drip` ($90\%$), `sprinkler` ($75\%$), `flood` ($50\%$) |
 | **`soil_type`** | `String` | Topsoil texture: `clay_loam`, `sandy_loam`, `loam`, `silty_clay`, `heavy_clay` |
 
@@ -116,11 +116,11 @@ graph TD
 
 ### Step 2.1: Automated Telemetry Ingestion
 1. **Weather Telemetry**: Sourced from Open-Meteo API (cached in Redis Cloud `weather:{lat}:{lon}` for 3 hours).
-   - Variables fetched: Maximum Temperature ($T_{\text{max}}$), Minimum Temperature ($T_{\text{min}}$), Relative Humidity ($\text{RH}$), Solar Radiation ($R_s$), Wind Speed at 2m height ($u_2$), Precipitation ($P$).
+   - Variables fetched: Maximum Temperature ($T_{\mathrm{max}}$), Minimum Temperature ($T_{\mathrm{min}}$), Relative Humidity ($\mathrm{RH}$), Solar Radiation ($R_s$), Wind Speed at 2m height ($u_2$), Precipitation ($P$).
 2. **Soil Physics Telemetry**: Sourced from ISRIC SoilGrids 250m API (cached in Redis Cloud `soil:{lat}:{lon}` for 7 days).
-   - Variables fetched: Topsoil Clay $\%$ and Sand $\%$.
+   - Variables fetched: Topsoil Clay percentage and Sand percentage.
 3. **Crop Stage Telemetry**: Sourced from ICAR Package of Practices (`crop_coefficients.json`).
-   - Variables fetched: Stage durations ($L_{\text{ini}}, L_{\text{dev}}, L_{\text{mid}}, L_{\text{late}}$), stage $K_c$ values ($K_{c,\text{ini}}, K_{c,\text{mid}}, K_{c,\text{end}}$), and maximum root depth ($Z_{r,\text{max}}$).
+   - Variables fetched: Stage durations ($L_{\mathrm{ini}}, L_{\mathrm{dev}}, L_{\mathrm{mid}}, L_{\mathrm{late}}$), stage $K_c$ values ($K_{c,\mathrm{ini}}, K_{c,\mathrm{mid}}, K_{c,\mathrm{end}}$), and maximum root depth ($Z_{r,\mathrm{max}}$).
 
 ---
 
@@ -131,13 +131,13 @@ The backend [`PenmanMonteithEngine`](file:///d:/jaldrishti/jaldrishti-backend/ap
 $$ET_0 = \frac{0.408 \Delta (R_n - G) + \gamma \frac{900}{T + 273} u_2 (e_s - e_a)}{\Delta + \gamma (1 + 0.34 u_2)}$$
 
 #### Mathematical Components:
-1. **Mean Temperature**: $T_{\text{mean}} = \frac{T_{\text{max}} + T_{\text{min}}}{2} \quad [^\circ\text{C}]$
-2. **Atmospheric Pressure**: $P = 101.3 \times \left(\frac{293 - 0.0065 z}{293}\right)^{5.26} \quad [\text{kPa}]$
-3. **Psychrometric Constant**: $\gamma = 0.000665 \times P \quad [\text{kPa/}^\circ\text{C}]$
-4. **Saturation Vapour Pressure Curve Slope**: $\Delta = \frac{4098 \times e^0(T_{\text{mean}})}{(T_{\text{mean}} + 237.3)^2} \quad [\text{kPa/}^\circ\text{C}]$
-5. **Vapour Pressure Deficit**: $e_s - e_a = \frac{e^0(T_{\text{max}}) + e^0(T_{\text{min}})}{2} \times \left(1 - \frac{\text{RH}}{100}\right) \quad [\text{kPa}]$
-6. **Net Radiation**: $R_n = 0.77 R_s - 0.10 R_s = 0.67 R_s \quad [\text{MJ/m}^2/\text{day}]$
-7. **Soil Heat Flux**: $G = 0.0 \quad [\text{MJ/m}^2/\text{day}]$
+1. **Mean Temperature**: $T_{\mathrm{mean}} = \frac{T_{\mathrm{max}} + T_{\mathrm{min}}}{2} \quad [^\circ\mathrm{C}]$
+2. **Atmospheric Pressure**: $P = 101.3 \times \left(\frac{293 - 0.0065 z}{293}\right)^{5.26} \quad [\mathrm{kPa}]$
+3. **Psychrometric Constant**: $\gamma = 0.000665 \times P \quad [\mathrm{kPa}/^\circ\mathrm{C}]$
+4. **Saturation Vapour Pressure Curve Slope**: $\Delta = \frac{4098 \times e^0(T_{\mathrm{mean}})}{(T_{\mathrm{mean}} + 237.3)^2} \quad [\mathrm{kPa}/^\circ\text{C}]$
+5. **Vapour Pressure Deficit**: $e_s - e_a = \frac{e^0(T_{\mathrm{max}}) + e^0(T_{\mathrm{min}})}{2} \times \left(1 - \frac{\mathrm{RH}}{100}\right) \quad [\mathrm{kPa}]$
+6. **Net Radiation**: $R_n = 0.77 R_s - 0.10 R_s = 0.67 R_s \quad [\mathrm{MJ/m}^2/\mathrm{day}]$
+7. **Soil Heat Flux**: $G = 0.0 \quad [\mathrm{MJ/m}^2/\mathrm{day}]$
 
 ---
 
@@ -157,25 +157,25 @@ Kc_ini ├─╱   Stage 1 (Initial)        │    ╲
         0   L_initial               L_mid  L_late
 ```
 
-$$\text{Actual Crop Demand } (ET_c) = ET_0 \times K_c(t) \quad [\text{mm/day}]$$
+$$\text{Actual Crop Demand } (ET_c) = ET_0 \times K_c(t) \quad [\mathrm{mm/day}]$$
 
 ---
 
 ### Step 2.4: Soil Moisture Holding Capacity Calculation
 
-Using topsoil clay $\%$ and sand $\%$ from satellite soil telemetry:
+Using topsoil Clay percentage ($\mathrm{Clay}$) and Sand percentage ($\mathrm{Sand}$) from satellite soil telemetry:
 
-1. **Field Capacity ($\theta_{\text{FC}}$)**:
-   $$\theta_{\text{FC}} = 0.10 + 0.0025 \times \text{Clay}\% + 0.0005 \times (100 - \text{Sand}\%) \quad [\text{m}^3/\text{m}^3]$$
+1. **Field Capacity ($\theta_{\mathrm{FC}}$)**:
+   $$\theta_{\mathrm{FC}} = 0.10 + 0.0025 \times \mathrm{Clay} + 0.0005 \times (100 - \mathrm{Sand}) \quad [\mathrm{m}^3/\mathrm{m}^3]$$
 
-2. **Permanent Wilting Point ($\theta_{\text{WP}}$)**:
-   $$\theta_{\text{WP}} = 0.02 + 0.0020 \times \text{Clay}\% \quad [\text{m}^3/\text{m}^3]$$
+2. **Permanent Wilting Point ($\theta_{\mathrm{WP}}$)**:
+   $$\theta_{\mathrm{WP}} = 0.02 + 0.0020 \times \mathrm{Clay} \quad [\mathrm{m}^3/\mathrm{m}^3]$$
 
 3. **Total Available Water ($TAW$)**:
-   $$TAW = 1000 \times (\theta_{\text{FC}} - \theta_{\text{WP}}) \times Z_r \quad [\text{mm}]$$
+   $$TAW = 1000 \times (\theta_{\mathrm{FC}} - \theta_{\mathrm{WP}}) \times Z_r \quad [\mathrm{mm}]$$
 
 4. **Readily Available Water ($RAW$) Threshold**:
-   $$RAW = p \times TAW \quad [\text{mm}]$$
+   $$RAW = p \times TAW \quad [\mathrm{mm}]$$
    *(where $p$ is the allowable depletion fraction, default $0.50$)*
 
 ---
@@ -184,13 +184,13 @@ Using topsoil clay $\%$ and sand $\%$ from satellite soil telemetry:
 
 Daily soil depletion $D_i$ in the root zone is calculated conservationally:
 
-$$D_i = D_{i-1} + ET_{c,i} - P_{\text{eff},i} - I_i$$
+$$D_i = D_{i-1} + ET_{c,i} - P_{\mathrm{eff},i} - I_i$$
 
 Where:
-- $D_{i-1}$: Previous day's soil depletion [$\text{mm}$]
-- $ET_{c,i}$: Today's crop evapotranspiration loss [$\text{mm}$]
-- $P_{\text{eff},i}$: Effective rainfall depth entering root zone ($P_{\text{eff}} = \min(P \times 0.80, P)$) [$\text{mm}$]
-- $I_i$: Net irrigation water applied today [$\text{mm}$]
+- $D_{i-1}$: Previous day's soil depletion [mm]
+- $ET_{c,i}$: Today's crop evapotranspiration loss [mm]
+- $P_{\mathrm{eff},i}$: Effective rainfall depth entering root zone ($P_{\mathrm{eff}} = \min(P \times 0.80, P)$) [mm]
+- $I_i$: Net irrigation water applied today [mm]
 
 ---
 
@@ -199,23 +199,23 @@ Where:
 When soil water depletion breaches the threshold ($D_i \ge RAW$):
 
 1. **Status Trigger**: `needs_irrigation_today = True`, `status = "IRRIGATE IMMEDIATELY"`
-2. **Net Water Recommended**: $D_{\text{net}} = D_i \quad [\text{mm}]$
+2. **Net Water Recommended**: $D_{\mathrm{net}} = D_i \quad [\mathrm{mm}]$
 3. **Gross Water Adjusted for Irrigation Efficiency**:
-   $$D_{\text{gross}} = \frac{D_{\text{net}}}{\eta_{\text{irrigation}}} \quad [\text{mm}]$$
-   *(Drip $= 90\%$, Sprinkler $= 75\%$, Flood $= 50\%$)*
+   $$D_{\mathrm{gross}} = \frac{D_{\mathrm{net}}}{\eta} \quad [\mathrm{mm}]$$
+   *(Drip efficiency $\eta = 0.90$, Sprinkler $\eta = 0.75$, Flood $\eta = 0.50$)*
 4. **Total Volumetric Water Volume**:
-   $$V_{\text{liters}} = D_{\text{gross}} \times \text{Area}_{\text{sqm}} \quad [\text{Liters}]$$
+   $$V_{\mathrm{liters}} = D_{\mathrm{gross}} \times A_{\mathrm{sqm}} \quad [\mathrm{Liters}]$$
 5. **Pump Runtime Duration**:
-   $$T_{\text{seconds}} = \frac{V_{\text{liters}}}{Q_{\text{pump}} \text{ [L/s]}}$$
-   $$\text{Pump Hours} = \left\lfloor \frac{T_{\text{seconds}}}{3600} \right\rfloor, \quad \text{Pump Minutes} = \text{round}\left( \frac{T_{\text{seconds}} \pmod{3600}}{60} \right)$$
+   $$T_{\mathrm{seconds}} = \frac{V_{\mathrm{liters}}}{Q_{\mathrm{pump}}}$$
+   $$\text{Pump Hours} = \left\lfloor \frac{T_{\mathrm{seconds}}}{3600} \right\rfloor, \quad \text{Pump Minutes} = \mathrm{round}\left( \frac{T_{\mathrm{seconds}} \pmod{3600}}{60} \right)$$
 
 ---
 
 ## 🌧️ 4. Phase 3: Smart Rain Hold Advisory & Cumulative ROI Telemetry
 
-Before issuing the final pump recommendation to the farmer, JalDrishti inspects the **upcoming 48-hour satellite rainfall forecast** ($P_{\text{upcoming}}$):
+Before issuing the final pump recommendation to the farmer, JalDrishti inspects the **upcoming 48-hour satellite rainfall forecast** ($P_{\mathrm{upcoming}}$):
 
-$$P_{\text{upcoming}} = \sum_{d=t+1}^{t+2} P_d \quad [\text{mm}]$$
+$$P_{\mathrm{upcoming}} = \sum_{d=t+1}^{t+2} P_d \quad [\mathrm{mm}]$$
 
 ```mermaid
 graph TD
@@ -232,17 +232,17 @@ graph TD
 
 ### Single-Run & Cumulative ROI Equations:
 1. **Single-Run Cost Saved**:
-   $$\text{Cost}_{\text{run}} = \text{round}\left( T_{\text{saved}} \times 80.0 \right) \quad [\text{₹ INR}]$$
-   *(Benchmark operating tariff: ₹$80.0$ / hour for electricity & diesel generator fuel)*
+   $$C_{\mathrm{run}} = \mathrm{round}(T_{\mathrm{saved}} \times 80) \quad [\mathrm{INR}]$$
+   *(Benchmark operating tariff: ₹80.0 / hour for electricity & diesel generator fuel)*
 
-2. **Cumulative Water Saved ($V_{\text{cum}}$)**:
-   $$V_{\text{cum}} = \text{round}\left( D_{\text{gross,eff}} \times \text{Area}_{\text{sqm}} \times (N_{\text{skipped}} + 3) \right) \quad [\text{Liters}]$$
+2. **Cumulative Water Saved ($V_{\mathrm{cum}}$)**:
+   $$V_{\mathrm{cum}} = \mathrm{round}(D_{\mathrm{gross}} \times A_{\mathrm{sqm}} \times (N_{\mathrm{skipped}} + 3)) \quad [\mathrm{Liters}]$$
 
-3. **Cumulative Financial Savings ($S_{\text{cum}}$)**:
-   $$S_{\text{cum}} = \text{round}\left( T_{\text{cum}} \times 80.0 + (N_{\text{skipped}} \times \text{Cost}_{\text{run}}) \right) \quad [\text{₹ INR}]$$
+3. **Cumulative Financial Savings ($S_{\mathrm{cum}}$)**:
+   $$S_{\mathrm{cum}} = \mathrm{round}(T_{\mathrm{cum}} \times 80 + (N_{\mathrm{skipped}} \times C_{\mathrm{run}})) \quad [\mathrm{INR}]$$
 
-4. **Cumulative Carbon Footprint Reduced ($E_{\text{CO2}}$)**:
-   $$E_{\text{CO2}} = \text{round}\left( T_{\text{cum}} \times 2.8, \, 1 \right) \quad [\text{kg CO}_2]$$
+4. **Cumulative Carbon Footprint Reduced ($E_{\mathrm{CO2}}$)**:
+   $$E_{\mathrm{CO2}} = \mathrm{round}(T_{\mathrm{cum}} \times 2.8, \, 1) \quad [\mathrm{kg\ CO}_2]$$
 
 ---
 
