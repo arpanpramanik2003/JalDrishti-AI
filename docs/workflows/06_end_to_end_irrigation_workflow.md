@@ -194,25 +194,26 @@ Kc_ini ├─╱   Stage 1 (Initial)        │    ╲
 
 ### Step 2.5: Daily Mass-Balance Soil Water Bucket Model
 * **Conceptual Requirement**:
-  The soil root zone acts like a water bucket. Water enters via effective rainfall ($P_{\mathrm{eff}}$) and farmer irrigation ($I$), and leaves via crop evapotranspiration ($ET_c$). Tracking daily mass balance determines the exact root zone water depletion ($D_i$).
+  The soil root zone acts like a water bucket. Water enters via effective rainfall (P<sub>eff</sub>) and farmer irrigation (I), and leaves via crop evapotranspiration (ET<sub>c</sub>). Tracking daily mass balance determines the exact root zone water depletion (D<sub>i</sub>).
 
 * **Mass-Balance Equation**:
+
   $$D_i = D_{i-1} + ET_{c,i} - P_{\mathrm{eff},i} - I_i \quad [\mathrm{mm}]$$
 
-  - $D_{i-1}$: Previous day's soil depletion [mm]
-  - $ET_{c,i}$: Today's crop evapotranspiration loss [mm]
-  - $P_{\mathrm{eff},i}$: Effective rainfall entering root zone ($P_{\mathrm{eff}} = \min(P \times 0.80, P)$) [mm]
-  - $I_i$: Net irrigation water applied today [mm]
+  - D<sub>i-1</sub>: Previous day's soil depletion [mm]
+  - ET<sub>c,i</sub>: Today's crop evapotranspiration loss [mm]
+  - P<sub>eff,i</sub>: Effective rainfall entering root zone (P<sub>eff</sub> = min(P × 0.80, P)) [mm]
+  - I<sub>i</sub>: Net irrigation water applied today [mm]
 
 ---
 
 ### Step 2.6: Decision Boundary & Volumetric Pump Runtime Calculation
 * **Conceptual Requirement**:
-  Farmers do not understand abstract scientific metrics like "$D_i = 18.5\text{ mm}$". They need actionable equipment instructions: *"Run your 5 HP pump for 2 Hours 15 Minutes today"*. JalDrishti performs this volumetric conversion:
+  Farmers need actionable equipment instructions: *"Run your 5 HP pump for 2 Hours 15 Minutes today"*. JalDrishti performs this volumetric conversion:
 
 1. **Decision Boundary Check**:
-   - If $D_i < RAW \rightarrow$ `status = "SOIL MOISTURE OPTIMAL"`, `recommended_water_mm = 0.0`, Pump Runtime = `0 Hours 0 Mins`.
-   - If $D_i \ge RAW \rightarrow$ `status = "IRRIGATE IMMEDIATELY"`, $D_{\mathrm{net}} = D_i \text{ mm}$.
+   - If D<sub>i</sub> < RAW: `status = "SOIL MOISTURE OPTIMAL"`, `recommended_water_mm = 0.0`, Pump Runtime = `0 Hours 0 Mins`.
+   - If D<sub>i</sub> ≥ RAW: `status = "IRRIGATE IMMEDIATELY"`, D<sub>net</sub> = D<sub>i</sub> mm.
 
 2. **Gross Water Adjusted for System Efficiency**:
    $$D_{\mathrm{gross}} = \frac{D_{\mathrm{net}}}{\eta} \quad [\mathrm{mm}]$$

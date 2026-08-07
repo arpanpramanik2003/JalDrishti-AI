@@ -230,22 +230,30 @@ Kc_ini ├─╱   Stage 1 (Initial)        │    ╲
      *(where $p$ is allowable depletion fraction, default $0.50$)*
 
 #### Step 2.5: Daily Mass-Balance Soil Water Bucket Model
-- **Concept**: The root zone behaves like a water bucket. Daily depletion $D_i$ tracks water leaving via crop transpiration ($ET_c$) vs. water entering via effective rain ($P_{\mathrm{eff}}$) and farmer irrigation ($I$):
+- **Concept**: The root zone behaves like a water bucket. Daily depletion D<sub>i</sub> tracks water leaving via crop transpiration (ET<sub>c</sub>) vs. water entering via effective rain (P<sub>eff</sub>) and farmer irrigation (I):
+
   $$D_i = D_{i-1} + ET_{c,i} - P_{\mathrm{eff},i} - I_i \quad [\mathrm{mm}]$$
-  *(where effective rain $P_{\mathrm{eff},i} = \min(P_i \times 0.80, P_i)$)*
+
+  *(where effective rain P<sub>eff,i</sub> = min(P<sub>i</sub> × 0.80, P<sub>i</sub>))*
 
 #### Step 2.6: Decision Boundary & Volumetric Equipment Runtime Calculation
-- **Concept**: Converts raw soil depletion depth ($D_i$) into practical pump operating durations:
+- **Concept**: Converts raw soil depletion depth (D<sub>i</sub>) into practical pump operating durations:
   1. **Decision Check**:
-     - If $D_i < RAW \rightarrow$ `status = "SOIL MOISTURE OPTIMAL"`, `recommended_water_mm = 0.0`, Pump Runtime = `0 Hours 0 Mins`.
-     - If $D_i \ge RAW \rightarrow$ `status = "IRRIGATE IMMEDIATELY"`, $D_{\mathrm{net}} = D_i \text{ mm}$.
+     - If D<sub>i</sub> < RAW: `status = "SOIL MOISTURE OPTIMAL"`, `recommended_water_mm = 0.0`, Pump Runtime = `0 Hours 0 Mins`.
+     - If D<sub>i</sub> ≥ RAW: `status = "IRRIGATE IMMEDIATELY"`, D<sub>net</sub> = D<sub>i</sub> mm.
   2. **Gross Water Adjusted for System Efficiency**:
+
      $$D_{\mathrm{gross}} = \frac{D_{\mathrm{net}}}{\eta} \quad [\mathrm{mm}]$$
-     *(Drip efficiency $\eta = 0.90$, Sprinkler $\eta = 0.75$, Flood $\eta = 0.50$)*
+
+     *(Drip efficiency η = 0.90, Sprinkler η = 0.75, Flood η = 0.50)*
   3. **Total Volumetric Water Volume**:
+
      $$V_{\mathrm{liters}} = D_{\mathrm{gross}} \times A_{\mathrm{sqm}} \quad [\mathrm{Liters}]$$
+
   4. **Pump Runtime Duration**:
+
      $$T_{\mathrm{seconds}} = \frac{V_{\mathrm{liters}}}{Q_{\mathrm{pump}}}$$
+
      $$\text{Pump Hours} = \left\lfloor \frac{T_{\mathrm{seconds}}}{3600} \right\rfloor, \quad \text{Pump Minutes} = \mathrm{round}\left( \frac{T_{\mathrm{seconds}} \pmod{3600}}{60} \right)$$
 
 ---
