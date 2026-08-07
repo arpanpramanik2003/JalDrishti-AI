@@ -3,7 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
-import '../screens/home_dashboard_screen.dart';
+import '../screens/main_navigation_screen.dart';
 import '../screens/pest_advisory_screen.dart';
 import '../screens/analytics_screen.dart';
 import '../screens/chat_screen.dart';
@@ -131,9 +131,10 @@ class AppDrawer extends StatelessWidget {
                   onTap: () {
                     Navigator.pop(context);
                     if (activeRoute != 'dashboard') {
-                      Navigator.pushReplacement(
+                      Navigator.pushAndRemoveUntil(
                         context,
-                        MaterialPageRoute(builder: (_) => const HomeDashboardScreen()),
+                        MaterialPageRoute(builder: (_) => const MainNavigationScreen()),
+                        (route) => false,
                       );
                     }
                   },

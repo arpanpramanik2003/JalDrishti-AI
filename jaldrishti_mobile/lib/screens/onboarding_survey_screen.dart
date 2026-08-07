@@ -6,7 +6,7 @@ import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/irrigation_provider.dart';
 import '../models/user_model.dart';
-import 'home_dashboard_screen.dart';
+import 'main_navigation_screen.dart';
 
 class OnboardingSurveyScreen extends StatefulWidget {
   const OnboardingSurveyScreen({super.key});
@@ -108,7 +108,7 @@ class _OnboardingSurveyScreenState extends State<OnboardingSurveyScreen> {
     if (success) {
       Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(builder: (_) => const HomeDashboardScreen()),
+        MaterialPageRoute(builder: (_) => const MainNavigationScreen()),
         (route) => false,
       );
     } else if (auth.errorMessage != null) {
