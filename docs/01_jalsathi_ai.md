@@ -81,9 +81,9 @@ Whenever the farmer changes the language selector dropdown, the screen dynamical
 
 ## 💻 Code Reference
 
-- **Backend RAG Service**: [`app/services/rag_service.py`](file:///d:/jaldrishti/jaldrishti-backend/app/services/rag_service.py)
-- **Vector DB Ingestion**: [`app/services/vector_db_service.py`](file:///d:/jaldrishti/jaldrishti-backend/app/services/vector_db_service.py)
+- **Backend RAG Service**: `app/services/rag_service.py`
+- **Vector DB Ingestion**: `app/services/vector_db_service.py`
 - **API Endpoint**: `POST /api/v1/jalsathi/chat`
-- **Mobile Chat Provider**: [`lib/providers/chat_provider.dart`](file:///d:/jaldrishti/jaldrishti_mobile/lib/providers/chat_provider.dart)
-- **Mobile Screen**: [`lib/screens/chat_screen.dart`](file:///d:/jaldrishti/jaldrishti_mobile/lib/screens/chat_screen.dart)
-- **Chat Bubble Component**: [`lib/widgets/chat_bubble.dart`](file:///d:/jaldrishti/jaldrishti_mobile/lib/widgets/chat_bubble.dart)
+- **Mobile Chat Provider**: `lib/providers/chat_provider.dart`
+- **Mobile Screen**: `lib/screens/chat_screen.dart`
+- **Chat Bubble Component**: `lib/widgets/chat_bubble.dart`

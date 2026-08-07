@@ -30,10 +30,10 @@ The Smart Rain Hold & ROI engine integrates telemetry from satellite feeds, soil
 
 | Variable Name | Source / Origin | Code Reference | Unit / Format | Description |
 |---|---|---|---|---|
-| **`upcoming_rain_mm`** | Open-Meteo 48h Forecast | [`app/api/v1/endpoints/irrigation.py`](file:///d:/jaldrishti/jaldrishti-backend/app/api/v1/endpoints/irrigation.py#L211) | `mm` | Sum of predicted rainfall over the next 2 days ($t+1, t+2$) |
-| **`precipitation_mm`** | Open-Meteo 24h Telemetry | [`app/api/v1/endpoints/irrigation.py`](file:///d:/jaldrishti/jaldrishti-backend/app/api/v1/endpoints/irrigation.py#L127) | `mm` | Today's expected / actual satellite rainfall depth |
-| **`needs_irrigation_today`** | Soil Water Bucket Model | [`app/engine/water_bucket_model.py`](file:///d:/jaldrishti/jaldrishti-backend/app/engine/water_bucket_model.py#L80) | `Boolean` | Flag indicating if soil depletion $D_i \ge RAW$ threshold |
-| **`gross_water_mm`** | Efficiency Engine | [`app/api/v1/endpoints/irrigation.py`](file:///d:/jaldrishti/jaldrishti-backend/app/api/v1/endpoints/irrigation.py#L193) | `mm` | Net water depth adjusted for irrigation efficiency $\eta$ |
+| **`upcoming_rain_mm`** | Open-Meteo 48h Forecast | `app/api/v1/endpoints/irrigation.py` | `mm` | Sum of predicted rainfall over the next 2 days ($t+1, t+2$) |
+| **`precipitation_mm`** | Open-Meteo 24h Telemetry | `app/api/v1/endpoints/irrigation.py` | `mm` | Today's expected / actual satellite rainfall depth |
+| **`needs_irrigation_today`** | Soil Water Bucket Model | `app/engine/water_bucket_model.py` | `Boolean` | Flag indicating if soil depletion $D_i \ge RAW$ threshold |
+| **`gross_water_mm`** | Efficiency Engine | `app/api/v1/endpoints/irrigation.py` | `mm` | Net water depth adjusted for irrigation efficiency $\eta$ |
 | **`area_sqm`** | Farm Plot Profile | `area_acres × 4046.86` | `m²` | Total field area converted to square meters |
 | **`flow_lps`** | Farm Plot Equipment Profile | `payload.pump_flow_lps` | `L/s` | Volumetric pump discharge flow rate (Default: `5.0 L/s`) |
 | **Hourly Pumping Cost** | Agronomic Cost Model | Benchmark Tariff Engine | `₹80.0 / hr` | Combined hourly cost of electricity, diesel fuel & pump wear |
@@ -135,11 +135,11 @@ graph TD
 
 The outputs of the Smart Rain Hold & ROI engine are displayed on the Mobile Dashboard through two dedicated, overflow-free Flutter widgets:
 
-### 1. [`SmartRainHoldCard`](file:///d:/jaldrishti/jaldrishti_mobile/lib/widgets/smart_rain_hold_card.dart)
+### 1. `SmartRainHoldCard`
 - **Visual Style**: Premium deep blue/slate linear gradient background (`#0284C7` $\rightarrow$ `#0F172A`) with sky-blue glowing borders (`#38BDF8`).
 - **Content**: High-visibility cloud-rain icon, upcoming 48-hour precipitation depth ($P_{\text{upcoming}}\text{ mm}$), single-run cost savings badge (`₹ Cost Saved`), and clear natural-language guidance.
 
-### 2. [`FarmerRoiSavingsCard`](file:///d:/jaldrishti/jaldrishti_mobile/lib/widgets/farmer_roi_savings_card.dart)
+### 2. `FarmerRoiSavingsCard`
 - **Visual Style**: Dark green/emerald accent (`#10B981`) theme representing financial growth and ecological sustainability.
 - **2×2 Telemetry Metric Grid**:
   1. **💧 Liters of Water Saved**: Total volumetric water conserved across the season.
@@ -153,7 +153,7 @@ The outputs of the Smart Rain Hold & ROI engine are displayed on the Mobile Dash
 
 All rain hold logic, financial calculations, and UI cards are located in the following repository files:
 
-- **Backend Decision Engine**: [`app/api/v1/endpoints/irrigation.py`](file:///d:/jaldrishti/jaldrishti-backend/app/api/v1/endpoints/irrigation.py#L209-L255)
-- **Pydantic Response Schemas**: [`app/schemas/irrigation_schema.py`](file:///d:/jaldrishti/jaldrishti-backend/app/schemas/irrigation_schema.py)
-- **Smart Rain Hold Card**: [`lib/widgets/smart_rain_hold_card.dart`](file:///d:/jaldrishti/jaldrishti_mobile/lib/widgets/smart_rain_hold_card.dart)
-- **Farmer ROI Telemetry Card**: [`lib/widgets/farmer_roi_savings_card.dart`](file:///d:/jaldrishti/jaldrishti_mobile/lib/widgets/farmer_roi_savings_card.dart)
+- **Backend Decision Engine**: `app/api/v1/endpoints/irrigation.py`
+- **Pydantic Response Schemas**: `app/schemas/irrigation_schema.py`
+- **Smart Rain Hold Card**: `lib/widgets/smart_rain_hold_card.dart`
+- **Farmer ROI Telemetry Card**: `lib/widgets/farmer_roi_savings_card.dart`

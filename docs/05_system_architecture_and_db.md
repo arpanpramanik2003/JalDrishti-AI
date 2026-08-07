@@ -152,7 +152,7 @@ return weather_data
 
 ## 🌐 4. FastAPI Router Architecture & API Endpoint Catalog
 
-The backend is structured into async modular v1 endpoint routers in [`app/api/v1/endpoints/`](file:///d:/jaldrishti/jaldrishti-backend/app/api/v1/endpoints/):
+The backend is structured into async modular v1 endpoint routers in `app/api/v1/endpoints/`:
 
 | Endpoint Path | HTTP Method | Router Handler | Functionality Description |
 |---|---|---|---|
@@ -210,7 +210,7 @@ Farmers and developers can access the host switcher by tapping the ⚙️ icon o
 
 ## 💻 7. Code Implementation Reference
 
-- **Database Session Manager**: [`app/db/database.py`](file:///d:/jaldrishti/jaldrishti-backend/app/db/database.py)
-- **Redis Cache Service**: [`app/services/cache_service.py`](file:///d:/jaldrishti/jaldrishti-backend/app/services/cache_service.py)
-- **Database Models**: [`app/models/farm_plot.py`](file:///d:/jaldrishti/jaldrishti-backend/app/models/farm_plot.py), [`app/models/user.py`](file:///d:/jaldrishti/jaldrishti-backend/app/models/user.py)
-- **Mobile Providers**: [`lib/providers/irrigation_provider.dart`](file:///d:/jaldrishti/jaldrishti_mobile/lib/providers/irrigation_provider.dart), [`lib/providers/chat_provider.dart`](file:///d:/jaldrishti/jaldrishti_mobile/lib/providers/chat_provider.dart)
+- **Database Session Manager**: `app/db/database.py`
+- **Redis Cache Service**: `app/services/cache_service.py`
+- **Database Models**: `app/models/farm_plot.py`, `app/models/user.py`
+- **Mobile Providers**: `lib/providers/irrigation_provider.dart`, `lib/providers/chat_provider.dart`

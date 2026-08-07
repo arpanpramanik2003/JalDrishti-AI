@@ -26,18 +26,18 @@ The epidemiological risk engine evaluates daily meteorological telemetry against
 
 | Variable Name | Source / Provider | Code Location | Unit / Format | Agronomic Function |
 |---|---|---|---|---|
-| **`max_temp_c`** | Open-Meteo Satellite Feed | [`app/services/weather_service.py`](file:///d:/jaldrishti/jaldrishti-backend/app/services/weather_service.py) | $^\circ\text{C}$ | Daily maximum air temperature |
-| **`min_temp_c`** | Open-Meteo Satellite Feed | [`app/services/weather_service.py`](file:///d:/jaldrishti/jaldrishti-backend/app/services/weather_service.py) | $^\circ\text{C}$ | Daily minimum air temperature |
+| **`max_temp_c`** | Open-Meteo Satellite Feed | `app/services/weather_service.py` | $^\circ\text{C}$ | Daily maximum air temperature |
+| **`min_temp_c`** | Open-Meteo Satellite Feed | `app/services/weather_service.py` | $^\circ\text{C}$ | Daily minimum air temperature |
 | **`temp_mean`** | Engine Calculation | `(max_temp + min_temp) / 2` | $^\circ\text{C}$ | Mean daily thermal window for spore germination |
-| **`humidity_percent`** | Open-Meteo Satellite Feed | [`app/services/weather_service.py`](file:///d:/jaldrishti/jaldrishti-backend/app/services/weather_service.py) | $\%$ | Relative humidity (RH) at 2m height |
-| **`precipitation_mm`** | Open-Meteo Satellite Feed | [`app/services/weather_service.py`](file:///d:/jaldrishti/jaldrishti-backend/app/services/weather_service.py) | $\text{mm}$ | Rainfall depth (amplifies fungal leaf wetness) |
+| **`humidity_percent`** | Open-Meteo Satellite Feed | `app/services/weather_service.py` | $\%$ | Relative humidity (RH) at 2m height |
+| **`precipitation_mm`** | Open-Meteo Satellite Feed | `app/services/weather_service.py` | $\text{mm}$ | Rainfall depth (amplifies fungal leaf wetness) |
 | **`crop_id`** | Farm Plot Profile | PostgreSQL (`farm_plots`) | `String` | Target crop identifier (`paddy_rice`, `potato`, etc.) |
 
 ---
 
 ## 🔬 3. Agronomic Pathogen Rule Matrix
 
-JalDrishti embeds verified epidemiological rules for major Indian cash and food crops within [`app/engine/pest_disease_engine.py`](file:///d:/jaldrishti/jaldrishti-backend/app/engine/pest_disease_engine.py):
+JalDrishti embeds verified epidemiological rules for major Indian cash and food crops within `app/engine/pest_disease_engine.py`:
 
 | Target Crop | Pathogen / Disease Name | Category | Temp Window | Min RH | Severity | Symptoms & Diagnostics |
 |---|---|---|---|---|---|---|
@@ -131,7 +131,7 @@ graph TD
 
 ## 📱 7. Mobile UI Visual Architecture
 
-The advisory results are rendered on the Flutter mobile app via [`PestAdvisoryScreen`](file:///d:/jaldrishti/jaldrishti_mobile/lib/screens/pest_advisory_screen.dart):
+The advisory results are rendered on the Flutter mobile app via `PestAdvisoryScreen`:
 
 1. **Severity Risk Badges**:
    - **`CRITICAL`** (Red `#EF4444`): Immediate outbreak warning requiring curative spray within 24 hours.
@@ -146,6 +146,6 @@ The advisory results are rendered on the Flutter mobile app via [`PestAdvisorySc
 
 ## 💻 8. Code Implementation Reference
 
-- **Pest & Disease Science Engine**: [`app/engine/pest_disease_engine.py`](file:///d:/jaldrishti/jaldrishti-backend/app/engine/pest_disease_engine.py)
-- **API Endpoint Handler**: [`app/api/v1/endpoints/crops.py`](file:///d:/jaldrishti/jaldrishti-backend/app/api/v1/endpoints/crops.py)
-- **Mobile Pest Advisory Screen**: [`lib/screens/pest_advisory_screen.dart`](file:///d:/jaldrishti/jaldrishti_mobile/lib/screens/pest_advisory_screen.dart)
+- **Pest & Disease Science Engine**: `app/engine/pest_disease_engine.py`
+- **API Endpoint Handler**: `app/api/v1/endpoints/crops.py`
+- **Mobile Pest Advisory Screen**: `lib/screens/pest_advisory_screen.dart`

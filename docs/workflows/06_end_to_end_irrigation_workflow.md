@@ -75,7 +75,7 @@ sequenceDiagram
 ---
 
 ### 2.3 Farm Plot Configuration & Equipment Attributes
-- **Action**: Farmer adds one or more specific farm plots via [`add_edit_farm_plot_screen.dart`](file:///d:/jaldrishti/jaldrishti_mobile/lib/screens/add_edit_farm_plot_screen.dart).
+- **Action**: Farmer adds one or more specific farm plots via `add_edit_farm_plot_screen.dart`.
 - **Backend Endpoint**: `POST /api/v1/plots/`
 - **Fields & Parameters Required for Hydrology**:
 
@@ -126,7 +126,7 @@ graph TD
 
 ### Step 2.2: FAO-56 Penman-Monteith Reference Evapotranspiration ($ET_0$)
 
-The backend [`PenmanMonteithEngine`](file:///d:/jaldrishti/jaldrishti-backend/app/engine/penman_monteith.py) calculates daily reference crop evapotranspiration ($ET_0$) for a standard grass reference surface:
+The backend `PenmanMonteithEngine` calculates daily reference crop evapotranspiration ($ET_0$) for a standard grass reference surface:
 
 $$ET_0 = \frac{0.408 \Delta (R_n - G) + \gamma \frac{900}{T + 273} u_2 (e_s - e_a)}{\Delta + \gamma (1 + 0.34 u_2)}$$
 
@@ -143,7 +143,7 @@ $$ET_0 = \frac{0.408 \Delta (R_n - G) + \gamma \frac{900}{T + 273} u_2 (e_s - e_
 
 ### Step 2.3: Dynamic Crop Coefficient ($K_c$) & Crop Transpiration Loss ($ET_c$)
 
-The backend [`SoilWaterBucketModel`](file:///d:/jaldrishti/jaldrishti-backend/app/engine/water_bucket_model.py) computes elapsed growth days from sowing date to interpolate time-dependent $K_c(t)$ and root depth $Z_r(t)$:
+The backend `SoilWaterBucketModel` computes elapsed growth days from sowing date to interpolate time-dependent $K_c(t)$ and root depth $Z_r(t)$:
 
 ```text
   Kc Factor
@@ -248,7 +248,7 @@ graph TD
 
 ## 📊 5. Phase 4: Field Analytics & Visualization Dashboard Engine
 
-The mobile client [`AnalyticsScreen`](file:///d:/jaldrishti/jaldrishti_mobile/lib/screens/analytics_screen.dart) provides a modular 5-tab breakdown of field performance:
+The mobile client `AnalyticsScreen` provides a modular 5-tab breakdown of field performance:
 
 ```text
 ┌─────────────────────────────────────────────────────────────────────────────────────────┐
@@ -257,21 +257,21 @@ The mobile client [`AnalyticsScreen`](file:///d:/jaldrishti/jaldrishti_mobile/li
 └─────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-1. **Tab 0: Weather Stats ([`weather_stats_tab.dart`](file:///d:/jaldrishti/jaldrishti_mobile/lib/screens/analytics/weather_stats_tab.dart))**:
+1. **Tab 0: Weather Stats (`weather_stats_tab.dart`)**:
    - Maps 6-day weather forecast directly from `daily_breakdown`.
    - Displays Max/Min temperatures, relative humidity $\%$, wind speed (km/h), precipitation depth (mm), and $ET_0$ reference evapotranspiration.
-2. **Tab 1: Daily Trends ([`daily_trends_tab.dart`](file:///d:/jaldrishti/jaldrishti_mobile/lib/screens/analytics/daily_trends_tab.dart))**:
+2. **Tab 1: Daily Trends (`daily_trends_tab.dart`)**:
    - CustomPainter bar & line chart featuring Y-axis scale labels (`0 mm`, `5 mm`, `10 mm`, `15 mm`).
    - Applied Water bars (Dark Blue), Rainfall bars (Sky Blue), and Crop Demand $ET_c$ golden spline curve.
    - Interactive daily breakdown card list showing exact daily numeric metrics.
-3. **Tab 2: Smart Insights ([`smart_insights_tab.dart`](file:///d:/jaldrishti/jaldrishti_mobile/lib/screens/analytics/smart_insights_tab.dart))**:
+3. **Tab 2: Smart Insights (`smart_insights_tab.dart`)**:
    - Real-time Hydration Status badge (Optimal / Deficit / High Storage).
    - Precision Savings Counter displaying dynamic water volume saved (kL) and financial savings (₹ INR).
    - Crop growth stage advisory tips and Smart Rain Hold alert banners.
-4. **Tab 3: Water Balance ([`water_balance_tab.dart`](file:///d:/jaldrishti/jaldrishti_mobile/lib/screens/analytics/water_balance_tab.dart))**:
+4. **Tab 3: Water Balance (`water_balance_tab.dart`)**:
    - Dynamic Water Satisfaction Index ($WSI = \frac{\text{Applied} + \text{Rain}}{\text{ETc}} \times 100\%$).
    - Volumetric breakdown cards comparing Irrigation Applied (kL), Rainfall Received (kL), and Crop Demand $ET_c$ (kL).
-5. **Tab 4: History Logs ([`history_logs_tab.dart`](file:///d:/jaldrishti/jaldrishti_mobile/lib/screens/analytics/history_logs_tab.dart))**:
+5. **Tab 4: History Logs (`history_logs_tab.dart`)**:
    - Queries backend `GET /api/v1/irrigation/history/{plot_id}` endpoint.
    - Renders historical water sessions with dates, notes, mm depth, and equivalent kL volume.
    - Includes a quick **"+ Log Water Run"** modal button so farmers can log irrigation runs directly from Analytics.
@@ -280,7 +280,7 @@ The mobile client [`AnalyticsScreen`](file:///d:/jaldrishti/jaldrishti_mobile/li
 
 ## 🔔 6. Phase 5: Notification Center & Emergency Advisory System
 
-JalDrishti features a dual-layer notification architecture driven by [`NotificationProvider`](file:///d:/jaldrishti/jaldrishti_mobile/lib/providers/notification_provider.dart) and [`NotificationService`](file:///d:/jaldrishti/jaldrishti_mobile/lib/core/services/notification_service.dart):
+JalDrishti features a dual-layer notification architecture driven by `NotificationProvider` and `NotificationService`:
 
 ```mermaid
 graph TD
@@ -307,8 +307,8 @@ graph TD
 
 | Functional Phase | Backend Python Code | Mobile Flutter Code |
 |---|---|---|
-| **Phase 1: User & Plot Setup** | [`app/api/v1/endpoints/auth.py`](file:///d:/jaldrishti/jaldrishti-backend/app/api/v1/endpoints/auth.py)<br/>[`app/api/v1/endpoints/farm_plots.py`](file:///d:/jaldrishti/jaldrishti-backend/app/api/v1/endpoints/farm_plots.py) | [`lib/screens/login_screen.dart`](file:///d:/jaldrishti/jaldrishti_mobile/lib/screens/login_screen.dart)<br/>[`lib/screens/add_edit_farm_plot_screen.dart`](file:///d:/jaldrishti/jaldrishti_mobile/lib/screens/add_edit_farm_plot_screen.dart) |
-| **Phase 2: Hydrological Engine** | [`app/engine/penman_monteith.py`](file:///d:/jaldrishti/jaldrishti-backend/app/engine/penman_monteith.py)<br/>[`app/engine/water_bucket_model.py`](file:///d:/jaldrishti/jaldrishti-backend/app/engine/water_bucket_model.py) | [`lib/providers/irrigation_provider.dart`](file:///d:/jaldrishti/jaldrishti_mobile/lib/providers/irrigation_provider.dart)<br/>[`lib/widgets/dashboard_pump_card.dart`](file:///d:/jaldrishti/jaldrishti_mobile/lib/widgets/dashboard_pump_card.dart) |
-| **Phase 3: Rain Hold & ROI** | [`app/api/v1/endpoints/irrigation.py`](file:///d:/jaldrishti/jaldrishti-backend/app/api/v1/endpoints/irrigation.py#L209-L255) | [`lib/widgets/smart_rain_hold_card.dart`](file:///d:/jaldrishti/jaldrishti_mobile/lib/widgets/smart_rain_hold_card.dart)<br/>[`lib/widgets/farmer_roi_savings_card.dart`](file:///d:/jaldrishti/jaldrishti_mobile/lib/widgets/farmer_roi_savings_card.dart) |
-| **Phase 4: Field Analytics** | [`app/api/v1/endpoints/irrigation.py`](file:///d:/jaldrishti/jaldrishti-backend/app/api/v1/endpoints/irrigation.py#L285-L305) | [`lib/screens/analytics_screen.dart`](file:///d:/jaldrishti/jaldrishti_mobile/lib/screens/analytics_screen.dart)<br/>[`lib/screens/analytics/`](file:///d:/jaldrishti/jaldrishti_mobile/lib/screens/analytics/) |
-| **Phase 5: Emergency Alerts** | [`app/engine/pest_disease_engine.py`](file:///d:/jaldrishti/jaldrishti-backend/app/engine/pest_disease_engine.py) | [`lib/providers/notification_provider.dart`](file:///d:/jaldrishti/jaldrishti_mobile/lib/providers/notification_provider.dart)<br/>[`lib/core/services/notification_service.dart`](file:///d:/jaldrishti/jaldrishti_mobile/lib/core/services/notification_service.dart) |
+| **Phase 1: User & Plot Setup** | `app/api/v1/endpoints/auth.py`<br/>`app/api/v1/endpoints/farm_plots.py` | `lib/screens/login_screen.dart`<br/>`lib/screens/add_edit_farm_plot_screen.dart` |
+| **Phase 2: Hydrological Engine** | `app/engine/penman_monteith.py`<br/>`app/engine/water_bucket_model.py` | `lib/providers/irrigation_provider.dart`<br/>`lib/widgets/dashboard_pump_card.dart` |
+| **Phase 3: Rain Hold & ROI** | `app/api/v1/endpoints/irrigation.py` | `lib/widgets/smart_rain_hold_card.dart`<br/>`lib/widgets/farmer_roi_savings_card.dart` |
+| **Phase 4: Field Analytics** | `app/api/v1/endpoints/irrigation.py` | `lib/screens/analytics_screen.dart`<br/>`lib/screens/analytics/` |
+| **Phase 5: Emergency Alerts** | `app/engine/pest_disease_engine.py` | `lib/providers/notification_provider.dart`<br/>`lib/core/services/notification_service.dart` |

@@ -30,13 +30,13 @@ Every variable in JalDrishti's hydrological pipeline is sourced dynamically from
 
 | Data Parameter | Source / Service | Code Ingestion Location | Description & Unit |
 |---|---|---|---|
-| **Max / Min Temperature ($T_{\text{max}}, T_{\text{min}}$)** | Open-Meteo Weather API | [`app/services/weather_service.py`](file:///d:/jaldrishti/jaldrishti-backend/app/services/weather_service.py) | 2-meter air temperature [$^\circ\text{C}$] |
-| **Relative Humidity ($\text{RH}$)** | Open-Meteo Weather API | [`app/services/weather_service.py`](file:///d:/jaldrishti/jaldrishti-backend/app/services/weather_service.py) | Daily mean relative humidity [$\%$] |
-| **Wind Speed ($u_2$)** | Open-Meteo Weather API | [`app/services/weather_service.py`](file:///d:/jaldrishti/jaldrishti-backend/app/services/weather_service.py) | 2-meter wind velocity [$\text{m/s}$] |
-| **Solar Radiation ($R_s$)** | Open-Meteo Weather API | [`app/services/weather_service.py`](file:///d:/jaldrishti/jaldrishti-backend/app/services/weather_service.py) | Daily global solar radiation [$\text{MJ/m}^2/\text{day}$] |
-| **Precipitation ($P$)** | Open-Meteo Weather API | [`app/services/weather_service.py`](file:///d:/jaldrishti/jaldrishti-backend/app/services/weather_service.py) | 24-hour satellite rainfall depth [$\text{mm}$] |
-| **Clay & Sand Content** | ISRIC SoilGrids 250m API | [`app/services/soil_service.py`](file:///d:/jaldrishti/jaldrishti-backend/app/services/soil_service.py) | Topsoil clay and sand composition [$\%$] |
-| **Crop Stage & $K_c$ Curves** | ICAR Package of Practices | [`app/engine/crop_coefficients.json`](file:///d:/jaldrishti/jaldrishti-backend/app/engine/crop_coefficients.json) | Stage durations (days) and base $K_c$ values |
+| **Max / Min Temperature ($T_{\text{max}}, T_{\text{min}}$)** | Open-Meteo Weather API | `app/services/weather_service.py` | 2-meter air temperature [$^\circ\text{C}$] |
+| **Relative Humidity ($\text{RH}$)** | Open-Meteo Weather API | `app/services/weather_service.py` | Daily mean relative humidity [$\%$] |
+| **Wind Speed ($u_2$)** | Open-Meteo Weather API | `app/services/weather_service.py` | 2-meter wind velocity [$\text{m/s}$] |
+| **Solar Radiation ($R_s$)** | Open-Meteo Weather API | `app/services/weather_service.py` | Daily global solar radiation [$\text{MJ/m}^2/\text{day}$] |
+| **Precipitation ($P$)** | Open-Meteo Weather API | `app/services/weather_service.py` | 24-hour satellite rainfall depth [$\text{mm}$] |
+| **Clay & Sand Content** | ISRIC SoilGrids 250m API | `app/services/soil_service.py` | Topsoil clay and sand composition [$\%$] |
+| **Crop Stage & $K_c$ Curves** | ICAR Package of Practices | `app/engine/crop_coefficients.json` | Stage durations (days) and base $K_c$ values |
 | **Field Size & Pump HP** | Farmer Plot Profile | PostgreSQL (`farm_plots` table) | Plot area [Acres] and pump rating [HP, Flow L/s] |
 
 ---
@@ -229,7 +229,7 @@ graph TD
 
 All hydrological calculations are implemented in modular Python classes within the backend engine:
 
-- **Penman-Monteith Engine**: [`app/engine/penman_monteith.py`](file:///d:/jaldrishti/jaldrishti-backend/app/engine/penman_monteith.py)
-- **Soil Water Bucket Model**: [`app/engine/water_bucket_model.py`](file:///d:/jaldrishti/jaldrishti-backend/app/engine/water_bucket_model.py)
-- **Crop Coefficient Config**: [`app/engine/crop_coefficients.json`](file:///d:/jaldrishti/jaldrishti-backend/app/engine/crop_coefficients.json)
-- **API Endpoint Router**: [`app/api/v1/endpoints/irrigation.py`](file:///d:/jaldrishti/jaldrishti-backend/app/api/v1/endpoints/irrigation.py)
+- **Penman-Monteith Engine**: `app/engine/penman_monteith.py`
+- **Soil Water Bucket Model**: `app/engine/water_bucket_model.py`
+- **Crop Coefficient Config**: `app/engine/crop_coefficients.json`
+- **API Endpoint Router**: `app/api/v1/endpoints/irrigation.py`
