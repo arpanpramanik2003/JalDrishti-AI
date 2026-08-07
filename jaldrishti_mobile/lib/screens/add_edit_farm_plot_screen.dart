@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:provider/provider.dart';
 import '../models/farm_plot_model.dart';
@@ -34,28 +35,48 @@ class _AddEditFarmPlotScreenState extends State<AddEditFarmPlotScreen> {
 
   String _selectedIrrigationMethod = 'flood';
   String _selectedSoilType = 'clay_loam';
+  bool _isLocating = false;
+  
+  // Mandatory GPS tracking
+  bool _gpsVerified = false;
+  bool _gpsError = false;
 
   static const List<Map<String, String>> _fallbackCrops = [
     {'id': 'banana', 'name': '🍌 Banana (কলা)'},
+    {'id': 'black_gram', 'name': '🫘 Black Gram / Urad (মাষকলাই)'},
     {'id': 'cabbage', 'name': '🥬 Cabbage (বাঁধাকপি)'},
-    {'id': 'chilli', 'name': '🌶️ Chilli (লঙ্কা)'},
+    {'id': 'cauliflower', 'name': '🥦 Cauliflower (ফুলকপি)'},
+    {'id': 'chickpea', 'name': '🧆 Chickpea / Gram (ছোলা)'},
+    {'id': 'chilli', 'name': '🌶️ Chilli / Pepper (লঙ্কা)'},
     {'id': 'cotton', 'name': '🧵 Cotton (তুলা)'},
+    {'id': 'cucumber', 'name': '🥒 Cucumber / Gourd (শশা / লাউ)'},
     {'id': 'eggplant', 'name': '🍆 Eggplant / Brinjal (বেগুন)'},
+    {'id': 'finger_millet', 'name': '🌾 Finger Millet / Ragi (রাগী)'},
     {'id': 'garlic', 'name': '🧄 Garlic (রসুন)'},
+    {'id': 'ginger', 'name': '🫚 Ginger (আদা)'},
+    {'id': 'green_gram', 'name': '🫛 Green Gram / Moong (মুগ ডাল)'},
     {'id': 'groundnut', 'name': '🥜 Groundnut / Peanut (চীনাবাদাম)'},
     {'id': 'jute', 'name': '🧶 Jute (পাট)'},
     {'id': 'maize', 'name': '🌽 Maize / Corn (ভুট্টা)'},
     {'id': 'mango', 'name': '🥭 Mango Orchard (আম)'},
-    {'id': 'mustard', 'name': '🟡 Mustard (সরিষা)'},
+    {'id': 'mustard', 'name': '🟡 Mustard / Sarson (সরষে)'},
+    {'id': 'okra', 'name': '🫛 Okra / Lady Finger (ঢ্যাঁড়শ)'},
     {'id': 'onion', 'name': '🧅 Onion (পেঁয়াজ)'},
     {'id': 'paddy_rice', 'name': '🌾 Paddy Rice (ধান)'},
+    {'id': 'papaya', 'name': '🍈 Papaya (পেঁপে)'},
+    {'id': 'pearl_millet', 'name': '🌾 Pearl Millet / Bajra (বাজরা)'},
     {'id': 'potato', 'name': '🥔 Potato (আলু)'},
     {'id': 'pulses', 'name': '🫘 Pulses / Lentils (ডাল)'},
+    {'id': 'sesame', 'name': '🌱 Sesame / Til (তিল)'},
+    {'id': 'sorghum', 'name': '🌾 Sorghum / Jowar (জোয়ার)'},
     {'id': 'soybean', 'name': '🫛 Soybean (সয়াবিন)'},
     {'id': 'sugarcane', 'name': '🎋 Sugarcane (আখ)'},
     {'id': 'sunflower', 'name': '🌻 Sunflower (সূর্যমুখী)'},
     {'id': 'tea', 'name': '🍃 Tea Plantation (চা)'},
+    {'id': 'tobacco', 'name': '🍂 Tobacco (তামাক)'},
     {'id': 'tomato', 'name': '🍅 Tomato (টমেটো)'},
+    {'id': 'turmeric', 'name': '🟡 Turmeric (হলুদ)'},
+    {'id': 'watermelon', 'name': '🍉 Watermelon (তরমুজ)'},
     {'id': 'wheat', 'name': '🌾 Wheat (গম)'},
   ];
 
@@ -64,7 +85,7 @@ class _AddEditFarmPlotScreenState extends State<AddEditFarmPlotScreen> {
     super.initState();
     final p = widget.plotToEdit;
     _nameController = TextEditingController(text: p?.name ?? '');
-    _locationNameController = TextEditingController(text: p?.locationName ?? 'Burdwan, WB');
+    _locationNameController = TextEditingController(text: p?.locationName ?? '');
     _areaController = TextEditingController(text: p?.areaAcres.toString() ?? '2.5');
     final todayStr = DateTime.now().toIso8601String().split('T')[0];
     _sowingDateController = TextEditingController(text: p?.sowingDate ?? todayStr);
@@ -77,6 +98,10 @@ class _AddEditFarmPlotScreenState extends State<AddEditFarmPlotScreen> {
       _isPrimary = p.isPrimary;
       _selectedIrrigationMethod = p.irrigationMethod;
       _selectedSoilType = p.soilType;
+      _gpsVerified = true; // Existing plot already has saved coordinates
+    } else {
+      // Auto-detect live GPS location on new plot creation
+      _fetchCurrentGps();
     }
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -94,6 +119,44 @@ class _AddEditFarmPlotScreenState extends State<AddEditFarmPlotScreen> {
     super.dispose();
   }
 
+  Future<void> _fetchCurrentGps() async {
+    if (_isLocating) return;
+    setState(() => _isLocating = true);
+    try {
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) return;
+
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) return;
+      }
+      if (permission == LocationPermission.deniedForever) return;
+
+      Position? pos;
+      try {
+        pos = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.high,
+          timeLimit: const Duration(seconds: 6),
+        );
+      } catch (_) {
+        pos = await Geolocator.getLastKnownPosition();
+      }
+
+      if (pos != null && mounted) {
+        setState(() {
+          _latitude = pos!.latitude;
+          _longitude = pos.longitude;
+          _gpsVerified = true;
+          _gpsError = false;
+        });
+      }
+    } catch (_) {
+    } finally {
+      if (mounted) setState(() => _isLocating = false);
+    }
+  }
+
   void _openLocationPicker() async {
     final result = await Navigator.push<Map<String, dynamic>>(
       context,
@@ -109,13 +172,16 @@ class _AddEditFarmPlotScreenState extends State<AddEditFarmPlotScreen> {
       setState(() {
         _latitude = result['latitude'] ?? _latitude;
         _longitude = result['longitude'] ?? _longitude;
+        _gpsVerified = true;
+        _gpsError = false;
       });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            '📍 GPS Coordinates Updated: ${_latitude.toStringAsFixed(4)}, ${_longitude.toStringAsFixed(4)}',
+            '📍 Live GPS Coordinates Confirmed: ${_latitude.toStringAsFixed(4)}, ${_longitude.toStringAsFixed(4)}',
           ),
           backgroundColor: const Color(0xFF0284C7),
+          behavior: SnackBarBehavior.floating,
         ),
       );
     }
@@ -123,6 +189,31 @@ class _AddEditFarmPlotScreenState extends State<AddEditFarmPlotScreen> {
 
   void _savePlot() async {
     if (!_formKey.currentState!.validate()) return;
+
+    // MANDATORY GPS PINPOINT CHECK
+    if (!_gpsVerified) {
+      setState(() => _gpsError = true);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(LucideIcons.alertTriangle, color: Colors.white, size: 18),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'GPS Pinpoint Required! Tap "Map Pin" to set your field location.',
+                  style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600),
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: const Color(0xFFEF4444),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+      );
+      return;
+    }
 
     final auth = context.read<AuthProvider>();
     final irrigation = context.read<IrrigationProvider>();
@@ -219,6 +310,8 @@ class _AddEditFarmPlotScreenState extends State<AddEditFarmPlotScreen> {
                 decoration: InputDecoration(
                   labelText: 'Farm Plot Name',
                   labelStyle: const TextStyle(color: Color(0xFF94A3B8)),
+                  hintText: 'e.g. North Paddy Field',
+                  hintStyle: const TextStyle(color: Color(0xFF475569), fontSize: 13),
                   prefixIcon: const Icon(LucideIcons.sprout, color: Color(0xFF38BDF8)),
                   counterText: '',
                   filled: true,
@@ -240,6 +333,8 @@ class _AddEditFarmPlotScreenState extends State<AddEditFarmPlotScreen> {
                 decoration: InputDecoration(
                   labelText: 'Village / District / Location Name',
                   labelStyle: const TextStyle(color: Color(0xFF94A3B8)),
+                  hintText: 'e.g. Burdwan, West Bengal or Village Name',
+                  hintStyle: const TextStyle(color: Color(0xFF475569), fontSize: 13),
                   prefixIcon: const Icon(LucideIcons.mapPin, color: Color(0xFF38BDF8)),
                   counterText: '',
                   filled: true,
@@ -254,55 +349,112 @@ class _AddEditFarmPlotScreenState extends State<AddEditFarmPlotScreen> {
               ),
               const SizedBox(height: 20),
 
-              // Map GPS Selector Card
-              Container(
+              // Map GPS Selector Card (FIXED OVERFLOW & MANDATORY VALIDATION)
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 250),
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: const Color(0xFF1E293B),
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: const Color(0xFF334155)),
+                  border: Border.all(
+                    color: _gpsError ? const Color(0xFFEF4444) : const Color(0xFF334155),
+                    width: _gpsError ? 1.8 : 1.0,
+                  ),
+                  boxShadow: _gpsError
+                      ? [
+                          BoxShadow(
+                            color: const Color(0xFFEF4444).withValues(alpha: 0.25),
+                            blurRadius: 10,
+                          )
+                        ]
+                      : null,
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                'GPS Pinpoint Coordinates',
-                                style: GoogleFonts.outfit(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                  color: const Color(0xFF94A3B8),
-                                ),
+                              Row(
+                                children: [
+                                  Flexible(
+                                    child: Text(
+                                      'GPS Coordinates',
+                                      style: GoogleFonts.outfit(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.bold,
+                                        color: _gpsError ? const Color(0xFFEF4444) : const Color(0xFF94A3B8),
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  const Text(
+                                    ' *',
+                                    style: TextStyle(color: Color(0xFFEF4444), fontWeight: FontWeight.bold),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: _gpsVerified
+                                          ? const Color(0xFF10B981).withValues(alpha: 0.18)
+                                          : const Color(0xFFF59E0B).withValues(alpha: 0.18),
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: Text(
+                                      _gpsVerified ? 'SET' : 'REQUIRED',
+                                      style: GoogleFonts.inter(
+                                        fontSize: 9,
+                                        fontWeight: FontWeight.w800,
+                                        color: _gpsVerified ? const Color(0xFF10B981) : const Color(0xFFF59E0B),
+                                        letterSpacing: 0.5,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                               const SizedBox(height: 4),
-                              Text(
-                                '${_latitude.toStringAsFixed(4)}, ${_longitude.toStringAsFixed(4)}',
-                                style: GoogleFonts.outfit(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: const Color(0xFF38BDF8),
-                                ),
-                              ),
+                              _isLocating
+                                  ? Row(
+                                      children: [
+                                        const SizedBox(
+                                          width: 14,
+                                          height: 14,
+                                          child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF38BDF8)),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          'Acquiring live GPS...',
+                                          style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFF38BDF8)),
+                                        ),
+                                      ],
+                                    )
+                                  : Text(
+                                      '${_latitude.toStringAsFixed(4)}° N, ${_longitude.toStringAsFixed(4)}° E',
+                                      style: GoogleFonts.outfit(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.bold,
+                                        color: const Color(0xFF38BDF8),
+                                      ),
+                                    ),
                             ],
                           ),
                         ),
+                        const SizedBox(width: 8),
                         ElevatedButton.icon(
                           onPressed: _openLocationPicker,
-                          icon: const Icon(LucideIcons.mapPin, size: 16, color: Colors.white),
+                          icon: const Icon(LucideIcons.mapPin, size: 14, color: Colors.white),
                           label: Text(
-                            'Pick Map Pin',
-                            style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold),
+                            'Map Pin',
+                            style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
                           ),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF0284C7),
+                            backgroundColor: _gpsError ? const Color(0xFFEF4444) : const Color(0xFF0284C7),
                             foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(10),
                             ),
@@ -323,6 +475,7 @@ class _AddEditFarmPlotScreenState extends State<AddEditFarmPlotScreen> {
               const SizedBox(height: 6),
               DropdownButtonFormField<String>(
                 value: _selectedCrop,
+                isExpanded: true,
                 dropdownColor: const Color(0xFF1E293B),
                 style: GoogleFonts.outfit(color: Colors.white, fontSize: 15),
                 decoration: InputDecoration(
@@ -430,6 +583,7 @@ class _AddEditFarmPlotScreenState extends State<AddEditFarmPlotScreen> {
               const SizedBox(height: 4),
               DropdownButtonFormField<String>(
                 value: _selectedIrrigationMethod,
+                isExpanded: true,
                 dropdownColor: const Color(0xFF1E293B),
                 style: GoogleFonts.outfit(color: Colors.white, fontSize: 14),
                 decoration: InputDecoration(
@@ -437,11 +591,21 @@ class _AddEditFarmPlotScreenState extends State<AddEditFarmPlotScreen> {
                   fillColor: const Color(0xFF1E293B),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                   prefixIcon: const Icon(LucideIcons.droplets, color: Color(0xFF38BDF8)),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                 ),
                 items: const [
-                  DropdownMenuItem(value: 'drip', child: Text('💧 Drip Irrigation (90% Efficient)')),
-                  DropdownMenuItem(value: 'sprinkler', child: Text('🌧️ Overhead Sprinkler (75% Efficient)')),
-                  DropdownMenuItem(value: 'flood', child: Text('🌊 Surface / Flood (50% Efficient)')),
+                  DropdownMenuItem(
+                    value: 'drip',
+                    child: Text('💧 Drip System (90% Eff)', overflow: TextOverflow.ellipsis),
+                  ),
+                  DropdownMenuItem(
+                    value: 'sprinkler',
+                    child: Text('🌧️ Overhead Sprinkler (75% Eff)', overflow: TextOverflow.ellipsis),
+                  ),
+                  DropdownMenuItem(
+                    value: 'flood',
+                    child: Text('🌊 Surface / Flood (50% Eff)', overflow: TextOverflow.ellipsis),
+                  ),
                 ],
                 onChanged: (val) {
                   if (val != null) setState(() => _selectedIrrigationMethod = val);
@@ -454,6 +618,7 @@ class _AddEditFarmPlotScreenState extends State<AddEditFarmPlotScreen> {
               const SizedBox(height: 4),
               DropdownButtonFormField<String>(
                 value: _selectedSoilType,
+                isExpanded: true,
                 dropdownColor: const Color(0xFF1E293B),
                 style: GoogleFonts.outfit(color: Colors.white, fontSize: 14),
                 decoration: InputDecoration(
@@ -461,13 +626,29 @@ class _AddEditFarmPlotScreenState extends State<AddEditFarmPlotScreen> {
                   fillColor: const Color(0xFF1E293B),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                   prefixIcon: const Icon(LucideIcons.layers, color: Color(0xFF38BDF8)),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                 ),
                 items: const [
-                  DropdownMenuItem(value: 'sandy_loam', child: Text('🏜️ Sandy Loam (Fast Drainage)')),
-                  DropdownMenuItem(value: 'loam', child: Text('🌱 Loam (Balanced Storage)')),
-                  DropdownMenuItem(value: 'clay_loam', child: Text('🧱 Clay Loam (High Storage)')),
-                  DropdownMenuItem(value: 'silty_clay', child: Text('🌾 Silty Clay (Very High Storage)')),
-                  DropdownMenuItem(value: 'heavy_clay', child: Text('💧 Heavy Clay (Maximum Moisture)')),
+                  DropdownMenuItem(
+                    value: 'sandy_loam',
+                    child: Text('🏜️ Sandy Loam (Fast Drainage)', overflow: TextOverflow.ellipsis),
+                  ),
+                  DropdownMenuItem(
+                    value: 'loam',
+                    child: Text('🌱 Loam (Balanced Storage)', overflow: TextOverflow.ellipsis),
+                  ),
+                  DropdownMenuItem(
+                    value: 'clay_loam',
+                    child: Text('🧱 Clay Loam (High Storage)', overflow: TextOverflow.ellipsis),
+                  ),
+                  DropdownMenuItem(
+                    value: 'silty_clay',
+                    child: Text('🌾 Silty Clay (Very High Storage)', overflow: TextOverflow.ellipsis),
+                  ),
+                  DropdownMenuItem(
+                    value: 'heavy_clay',
+                    child: Text('💧 Heavy Clay (Max Moisture)', overflow: TextOverflow.ellipsis),
+                  ),
                 ],
                 onChanged: (val) {
                   if (val != null) setState(() => _selectedSoilType = val);
@@ -498,44 +679,59 @@ class _AddEditFarmPlotScreenState extends State<AddEditFarmPlotScreen> {
               ),
               const SizedBox(height: 20),
 
-              // Primary Plot Switch
-              SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                activeTrackColor: const Color(0xFF0284C7),
-                title: Text(
-                  'Set as Primary Farm Plot',
-                  style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.w600),
+              // Set as Primary Switch Card (FIXED 18px OVERFLOW)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1E293B),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFF334155)),
                 ),
-                subtitle: Text(
-                  'Primary plot is loaded automatically when you open JalDrishti',
-                  style: GoogleFonts.inter(color: const Color(0xFF94A3B8), fontSize: 12),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Set as Primary Farm Plot',
+                            style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Default plot loaded on app dashboard launch',
+                            style: GoogleFonts.inter(color: const Color(0xFF94A3B8), fontSize: 11),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Switch(
+                      value: _isPrimary,
+                      activeThumbColor: const Color(0xFF38BDF8),
+                      onChanged: (val) => setState(() => _isPrimary = val),
+                    ),
+                  ],
                 ),
-                value: _isPrimary,
-                onChanged: (val) => setState(() => _isPrimary = val),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 28),
 
-              // Save Button
+              // Submit Button
               SizedBox(
                 width: double.infinity,
+                height: 52,
                 child: ElevatedButton(
                   onPressed: farmPlotProvider.isLoading ? null : _savePlot,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF0284C7),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                   child: farmPlotProvider.isLoading
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                        )
+                      ? const CircularProgressIndicator(color: Colors.white)
                       : Text(
-                          isEditing ? 'Update Farm Plot Details' : 'Save & Register Farm Plot',
+                          isEditing ? 'Save Changes' : 'Create Farm Plot',
                           style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
                         ),
                 ),

@@ -11,6 +11,18 @@
     "root_depth_m": 0.60,
     "depletion_fraction_p": 0.35
   },
+  "black_gram": {
+    "name": "Black Gram / Urad (মাষকলাই / কলাই)",
+    "season": "Kharif / Summer",
+    "stages": {
+      "initial": {"duration_days": 15, "Kc": 0.40},
+      "crop_dev": {"duration_days": 25, "Kc": 0.75},
+      "mid_season": {"duration_days": 30, "Kc": 1.05},
+      "late_season": {"duration_days": 15, "Kc": 0.45}
+    },
+    "root_depth_m": 0.60,
+    "depletion_fraction_p": 0.45
+  },
   "cabbage": {
     "name": "Cabbage (বাঁধাকপি)",
     "season": "Rabi / Winter",
@@ -22,6 +34,30 @@
     },
     "root_depth_m": 0.50,
     "depletion_fraction_p": 0.45
+  },
+  "cauliflower": {
+    "name": "Cauliflower (ফুলকপি)",
+    "season": "Rabi / Winter",
+    "stages": {
+      "initial": {"duration_days": 20, "Kc": 0.45},
+      "crop_dev": {"duration_days": 35, "Kc": 0.75},
+      "mid_season": {"duration_days": 45, "Kc": 1.05},
+      "late_season": {"duration_days": 15, "Kc": 0.95}
+    },
+    "root_depth_m": 0.50,
+    "depletion_fraction_p": 0.45
+  },
+  "chickpea": {
+    "name": "Chickpea / Gram (ছোলা)",
+    "season": "Rabi / Winter",
+    "stages": {
+      "initial": {"duration_days": 20, "Kc": 0.40},
+      "crop_dev": {"duration_days": 30, "Kc": 0.75},
+      "mid_season": {"duration_days": 40, "Kc": 1.00},
+      "late_season": {"duration_days": 30, "Kc": 0.45}
+    },
+    "root_depth_m": 0.80,
+    "depletion_fraction_p": 0.50
   },
   "chilli": {
     "name": "Chilli / Pepper (লঙ্কা)",
@@ -47,6 +83,18 @@
     "root_depth_m": 1.20,
     "depletion_fraction_p": 0.65
   },
+  "cucumber": {
+    "name": "Cucumber / Gourd (শশা / লাউ)",
+    "season": "Zaid / Summer",
+    "stages": {
+      "initial": {"duration_days": 20, "Kc": 0.45},
+      "crop_dev": {"duration_days": 30, "Kc": 0.70},
+      "mid_season": {"duration_days": 40, "Kc": 1.00},
+      "late_season": {"duration_days": 15, "Kc": 0.75}
+    },
+    "root_depth_m": 0.60,
+    "depletion_fraction_p": 0.45
+  },
   "eggplant": {
     "name": "Eggplant / Brinjal (বেগুন)",
     "season": "All-Season",
@@ -59,6 +107,18 @@
     "root_depth_m": 0.70,
     "depletion_fraction_p": 0.45
   },
+  "finger_millet": {
+    "name": "Finger Millet / Ragi (রাগী / মারুয়া)",
+    "season": "Kharif / Rabi",
+    "stages": {
+      "initial": {"duration_days": 20, "Kc": 0.30},
+      "crop_dev": {"duration_days": 30, "Kc": 0.75},
+      "mid_season": {"duration_days": 40, "Kc": 1.05},
+      "late_season": {"duration_days": 20, "Kc": 0.50}
+    },
+    "root_depth_m": 0.80,
+    "depletion_fraction_p": 0.50
+  },
   "garlic": {
     "name": "Garlic (রসুন)",
     "season": "Rabi / Winter",
@@ -70,6 +130,30 @@
     },
     "root_depth_m": 0.40,
     "depletion_fraction_p": 0.30
+  },
+  "ginger": {
+    "name": "Ginger (আদা)",
+    "season": "Pre-Monsoon",
+    "stages": {
+      "initial": {"duration_days": 45, "Kc": 0.50},
+      "crop_dev": {"duration_days": 60, "Kc": 0.85},
+      "mid_season": {"duration_days": 90, "Kc": 1.15},
+      "late_season": {"duration_days": 45, "Kc": 0.80}
+    },
+    "root_depth_m": 0.45,
+    "depletion_fraction_p": 0.35
+  },
+  "green_gram": {
+    "name": "Green Gram / Moong (মুগ ডাল)",
+    "season": "Kharif / Summer",
+    "stages": {
+      "initial": {"duration_days": 15, "Kc": 0.40},
+      "crop_dev": {"duration_days": 20, "Kc": 0.75},
+      "mid_season": {"duration_days": 30, "Kc": 1.05},
+      "late_season": {"duration_days": 15, "Kc": 0.45}
+    },
+    "root_depth_m": 0.60,
+    "depletion_fraction_p": 0.45
   },
   "groundnut": {
     "name": "Groundnut / Peanut (চীনাবাদাম)",
@@ -131,6 +215,18 @@
     "root_depth_m": 0.60,
     "depletion_fraction_p": 0.45
   },
+  "okra": {
+    "name": "Okra / Lady Finger (ঢ্যাঁড়শ / ভিন্ডি)",
+    "season": "Kharif / Summer",
+    "stages": {
+      "initial": {"duration_days": 20, "Kc": 0.40},
+      "crop_dev": {"duration_days": 30, "Kc": 0.75},
+      "mid_season": {"duration_days": 40, "Kc": 1.00},
+      "late_season": {"duration_days": 20, "Kc": 0.90}
+    },
+    "root_depth_m": 0.60,
+    "depletion_fraction_p": 0.45
+  },
   "onion": {
     "name": "Onion (পেঁয়াজ)",
     "season": "Rabi / Winter",
@@ -155,6 +251,30 @@
     "root_depth_m": 0.50,
     "depletion_fraction_p": 0.20
   },
+  "papaya": {
+    "name": "Papaya (পেঁপে)",
+    "season": "Perennial",
+    "stages": {
+      "initial": {"duration_days": 60, "Kc": 0.50},
+      "crop_dev": {"duration_days": 90, "Kc": 0.80},
+      "mid_season": {"duration_days": 150, "Kc": 1.10},
+      "late_season": {"duration_days": 65, "Kc": 0.90}
+    },
+    "root_depth_m": 0.90,
+    "depletion_fraction_p": 0.40
+  },
+  "pearl_millet": {
+    "name": "Pearl Millet / Bajra (বাজরা)",
+    "season": "Kharif",
+    "stages": {
+      "initial": {"duration_days": 15, "Kc": 0.30},
+      "crop_dev": {"duration_days": 25, "Kc": 0.70},
+      "mid_season": {"duration_days": 35, "Kc": 1.00},
+      "late_season": {"duration_days": 25, "Kc": 0.45}
+    },
+    "root_depth_m": 0.90,
+    "depletion_fraction_p": 0.55
+  },
   "potato": {
     "name": "Potato (আলু)",
     "season": "Rabi / Winter",
@@ -178,6 +298,30 @@
     },
     "root_depth_m": 0.60,
     "depletion_fraction_p": 0.45
+  },
+  "sesame": {
+    "name": "Sesame / Til (তিল)",
+    "season": "Kharif / Summer",
+    "stages": {
+      "initial": {"duration_days": 20, "Kc": 0.35},
+      "crop_dev": {"duration_days": 30, "Kc": 0.75},
+      "mid_season": {"duration_days": 35, "Kc": 1.10},
+      "late_season": {"duration_days": 20, "Kc": 0.45}
+    },
+    "root_depth_m": 0.70,
+    "depletion_fraction_p": 0.50
+  },
+  "sorghum": {
+    "name": "Sorghum / Jowar (জোয়ার)",
+    "season": "Kharif / Rabi",
+    "stages": {
+      "initial": {"duration_days": 20, "Kc": 0.30},
+      "crop_dev": {"duration_days": 35, "Kc": 0.75},
+      "mid_season": {"duration_days": 40, "Kc": 1.05},
+      "late_season": {"duration_days": 30, "Kc": 0.55}
+    },
+    "root_depth_m": 1.00,
+    "depletion_fraction_p": 0.55
   },
   "soybean": {
     "name": "Soybean (সয়াবিন)",
@@ -227,6 +371,18 @@
     "root_depth_m": 1.00,
     "depletion_fraction_p": 0.40
   },
+  "tobacco": {
+    "name": "Tobacco (তামাক)",
+    "season": "Rabi / Winter",
+    "stages": {
+      "initial": {"duration_days": 30, "Kc": 0.50},
+      "crop_dev": {"duration_days": 40, "Kc": 0.85},
+      "mid_season": {"duration_days": 45, "Kc": 1.10},
+      "late_season": {"duration_days": 20, "Kc": 0.80}
+    },
+    "root_depth_m": 0.80,
+    "depletion_fraction_p": 0.40
+  },
   "tomato": {
     "name": "Tomato (টমেটো)",
     "season": "All-Season",
@@ -238,6 +394,30 @@
     },
     "root_depth_m": 0.70,
     "depletion_fraction_p": 0.40
+  },
+  "turmeric": {
+    "name": "Turmeric (হলুদ)",
+    "season": "Pre-Monsoon",
+    "stages": {
+      "initial": {"duration_days": 45, "Kc": 0.50},
+      "crop_dev": {"duration_days": 60, "Kc": 0.85},
+      "mid_season": {"duration_days": 100, "Kc": 1.15},
+      "late_season": {"duration_days": 45, "Kc": 0.75}
+    },
+    "root_depth_m": 0.50,
+    "depletion_fraction_p": 0.35
+  },
+  "watermelon": {
+    "name": "Watermelon (তরমুজ)",
+    "season": "Zaid / Summer",
+    "stages": {
+      "initial": {"duration_days": 20, "Kc": 0.40},
+      "crop_dev": {"duration_days": 30, "Kc": 0.75},
+      "mid_season": {"duration_days": 30, "Kc": 1.00},
+      "late_season": {"duration_days": 20, "Kc": 0.75}
+    },
+    "root_depth_m": 0.70,
+    "depletion_fraction_p": 0.45
   },
   "wheat": {
     "name": "Wheat (গম)",
