@@ -1,5 +1,11 @@
+import sys
+import os
 import uuid
 import pytest
+
+# Ensure backend root is in Python path
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 from fastapi.testclient import TestClient
 from app.main import app
 
