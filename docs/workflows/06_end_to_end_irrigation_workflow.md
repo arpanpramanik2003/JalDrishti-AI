@@ -163,7 +163,7 @@ $$\text{Actual Crop Demand } (ET_c) = ET_0 \times K_c(t) \quad [\text{mm/day}]$$
 
 ### Step 2.4: Soil Moisture Holding Capacity Calculation
 
-Using clay $\%$ and sand $\%$ from satellite soil telemetry:
+Using topsoil clay $\%$ and sand $\%$ from satellite soil telemetry:
 
 1. **Field Capacity ($\theta_{\text{FC}}$)**:
    $$\theta_{\text{FC}} = 0.10 + 0.0025 \times \text{Clay}\% + 0.0005 \times (100 - \text{Sand}\%) \quad [\text{m}^3/\text{m}^3]$$
@@ -176,7 +176,7 @@ Using clay $\%$ and sand $\%$ from satellite soil telemetry:
 
 4. **Readily Available Water ($RAW$) Threshold**:
    $$RAW = p \times TAW \quad [\text{mm}]$$
-   *(where $p$ is allowable depletion fraction, default $0.50$)*
+   *(where $p$ is the allowable depletion fraction, default $0.50$)*
 
 ---
 
@@ -207,7 +207,7 @@ When soil water depletion breaches the threshold ($D_i \ge RAW$):
    $$V_{\text{liters}} = D_{\text{gross}} \times \text{Area}_{\text{sqm}} \quad [\text{Liters}]$$
 5. **Pump Runtime Duration**:
    $$T_{\text{seconds}} = \frac{V_{\text{liters}}}{Q_{\text{pump}} \text{ [L/s]}}$$
-   $$\text{Pump Hours} = \lfloor \frac{T_{\text{seconds}}}{3600} \rfloor, \quad \text{Pump Minutes} = \text{round}\left(\frac{T_{\text{seconds}} \pmod{3600}}{60}\right)$$
+   $$\text{Pump Hours} = \left\lfloor \frac{T_{\text{seconds}}}{3600} \right\rfloor, \quad \text{Pump Minutes} = \text{round}\left( \frac{T_{\text{seconds}} \pmod{3600}}{60} \right)$$
 
 ---
 
@@ -232,14 +232,14 @@ graph TD
 
 ### Single-Run & Cumulative ROI Equations:
 1. **Single-Run Cost Saved**:
-   $$C_{\text{run}} = \text{round}(T_{\text{saved}} \times 80) \quad [\text{INR}]$$
+   $$\text{Cost}_{\text{run}} = \text{round}\left( T_{\text{saved}} \times 80.0 \right) \quad [\text{₹ INR}]$$
    *(Benchmark operating tariff: ₹$80.0$ / hour for electricity & diesel generator fuel)*
 
 2. **Cumulative Water Saved ($V_{\text{cum}}$)**:
    $$V_{\text{cum}} = \text{round}\left( D_{\text{gross,eff}} \times \text{Area}_{\text{sqm}} \times (N_{\text{skipped}} + 3) \right) \quad [\text{Liters}]$$
 
 3. **Cumulative Financial Savings ($S_{\text{cum}}$)**:
-   $$S_{\text{cum}} = \text{round}\left( T_{\text{cum}} \times 80 + (N_{\text{skipped}} \times C_{\text{run}}) \right) \quad [\text{INR}]$$
+   $$S_{\text{cum}} = \text{round}\left( T_{\text{cum}} \times 80.0 + (N_{\text{skipped}} \times \text{Cost}_{\text{run}}) \right) \quad [\text{₹ INR}]$$
 
 4. **Cumulative Carbon Footprint Reduced ($E_{\text{CO2}}$)**:
    $$E_{\text{CO2}} = \text{round}\left( T_{\text{cum}} \times 2.8, \, 1 \right) \quad [\text{kg CO}_2]$$
