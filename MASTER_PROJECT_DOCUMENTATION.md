@@ -427,30 +427,42 @@ erDiagram
 
 ---
 
-## 🎓 Chapter 5: Professor / Viva Defense Presentation Guide
+## 🎓 Chapter 5: System Technical FAQ & Core Engineering QA Matrix
 
-Use this dedicated guide when presenting JalDrishti AI to your professor, project mentor, or viva evaluation panel:
-
-### 5.1 Frequently Asked Questions & Defense Answers
+### 5.1 Technical Frequently Asked Questions & Engineering Answers
 
 #### Q1: "How is JalDrishti different from existing weather or farming apps (e.g., Meghdoot, Agstack)?"
 > **Answer**: Most existing agricultural apps only provide generic region-wide weather forecasts or text bulletins. JalDrishti provides **field-specific volumetric water calculations** by executing the FAO-56 Penman-Monteith equation using live satellite data ($ET_0, K_c, \theta_{\mathrm{FC}}, \theta_{\mathrm{WP}}$). It converts abstract soil moisture science into practical **Pump Hours and Minutes** customized to the farmer's individual pump HP and flow rate.
 
 #### Q2: "How do you calculate soil moisture without physical IoT soil sensors?"
-> **Answer**: We use the **ISRIC SoilGrids 250m Global Satellite Database** to extract topsoil sand $\%$ and clay $\%$ for the exact latitude/longitude of the field. We then calculate Field Capacity ($\theta_{\mathrm{FC}}$) and Permanent Wilting Point ($\theta_{\mathrm{WP}}$) using hydraulic pedotransfer functions, and maintain a daily **Mass-Balance Soil Water Bucket Model** ($D_i = D_{i-1} + ET_{c,i} - P_{\mathrm{eff},i} - I_i$). This provides $\ge 85\%$ accuracy comparable to physical sensors with zero hardware cost for farmers.
+> **Answer**: We use the **ISRIC SoilGrids 250m Global Satellite Database** to extract topsoil sand % and clay % for the exact latitude/longitude of the field. We then calculate Field Capacity ($\theta_{\mathrm{FC}}$) and Permanent Wilting Point ($\theta_{\mathrm{WP}}$) using hydraulic pedotransfer functions, and maintain a daily **Mass-Balance Soil Water Bucket Model** ($D_i = D_{i-1} + ET_{c,i} - P_{\mathrm{eff},i} - I_i$). This provides $\ge 85\%$ accuracy comparable to physical sensors with zero hardware cost for farmers.
 
 #### Q3: "What is the scientific basis for your Smart Rain Hold engine?"
-> **Answer**: The engine evaluates upcoming 48-hour precipitation ($P_{\text{upcoming}}$). If incoming rain $\ge 5.0\mathrm{~mm}$ is forecast, irrigating today would exceed Field Capacity ($\theta_{\mathrm{FC}}$), driving soil into saturation and root hypoxia. Overriding the pump schedule protects crop root respiration and saves approximately ₹$240$ in single-run pumping costs per plot.
+> **Answer**: The engine evaluates upcoming 48-hour precipitation ($P_{\mathrm{upcoming}}$). If incoming rain $\ge 5.0\mathrm{~mm}$ is forecast, irrigating today would exceed Field Capacity ($\theta_{\mathrm{FC}}$), driving soil into saturation and root hypoxia. Overriding the pump schedule protects crop root respiration and saves approximately ₹$240$ in single-run pumping costs per plot.
 
 #### Q4: "How does JalSathi AI avoid hallucinating wrong chemical dosages?"
 > **Answer**: We employ **Retrieval-Augmented Generation (RAG)** using ChromaDB and HuggingFace embeddings (`all-MiniLM-L6-v2`). Before generating a response, the backend retrieves verified ICAR/SAU Package of Practices (PoP) context documents. The LLM (Groq Llama 3 70B) is strictly constrained by system prompts to format responses with exact chemical dosages per acre alongside organic bio-pesticide alternatives.
+
+#### Q5: "Why is $ET_0$ calculated independently of soil properties in Phase 2?"
+> **Answer**: By FAO-56 scientific standards, $ET_0$ measures **pure atmospheric evaporative demand** for a standardized grass reference surface. Soil properties do not influence atmospheric radiation or wind speed. Mixing soil parameters into $ET_0$ would violate hydrological physics. Soil properties enter later when calculating root zone storage capacities ($TAW / RAW$) in the Soil Water Bucket Model.
+
+#### Q6: "How does the system handle crops with different sowing dates?"
+> **Answer**: The system computes `elapsed_days = (today - sowing_date)` dynamically for each individual farm plot. It interpolates $K_c(t)$ and root depth $Z_r(t)$ along the crop's specific 4-stage ICAR growth curve. A field planted 10 days ago receives early-stage initial parameters, while a field planted 50 days ago receives peak mid-season parameters.
+
+#### Q7: "Why is effective rainfall ($P_{\mathrm{eff}}$) calculated as $\min(P \times 0.80, P)$ instead of using total rainfall ($P$)?"
+> **Answer**: Not all satellite rainfall reaches crop roots. A portion of heavy rainfall is lost to surface runoff, canopy interception, and rapid deep percolation below the root zone. Applying an $80\%$ effective rainfall coefficient ($P_{\mathrm{eff}} = 0.80 \times P$) accounts for real-world runoff losses in agricultural fields according to FAO guidelines.
+
+#### Q8: "What is the significance of the Water Satisfaction Index ($WSI$) in Tab 3 of Field Analytics?"
+> **Answer**: $WSI$ measures the ratio of total water received (applied irrigation + effective rain) to actual crop water demand ($ET_c$):
+> $$WSI = \frac{\text{Applied Water} + \text{Effective Rain}}{ET_c} \times 100\%$$
+> A $WSI$ between $90\% - 110\%$ indicates optimal hydration. A $WSI < 80\%$ alerts the farmer to drought stress, while a $WSI > 130\%$ warns of over-watering and risk of root asphyxiation.
 
 ---
 
 ### 5.2 Key Project Novelties & Highlights
 1. **Zero-Hardware Precision Hydrology**: Brings scientific FAO-56 irrigation scheduling to resource-constrained farmers without requiring IoT hardware.
 2. **Dynamic Volumetric Equipment Mapping**: Automatically translates required net water depth ($D_{\mathrm{net}}$) into exact pump operating runtimes based on pump HP and discharge rate ($Q_{\mathrm{pump}}$).
-3. **Smart Rain Hold & Financial ROI Telemetry**: Real-time monetary (₹ INR), water volume (kL), and carbon footprint ($\mathrm{kg~CO}_2$) savings tracking.
+3. **Smart Rain Hold & Financial ROI Telemetry**: Real-time monetary (₹ INR), water volume (kL), and carbon footprint ($\mathrm{kg\ CO}_2$) savings tracking.
 4. **Authentic Multilingual Voice RAG**: Full Bengali (বাংলা), Hindi (हिंदी), and English voice mic STT and audio TTS support.
 
 ---
