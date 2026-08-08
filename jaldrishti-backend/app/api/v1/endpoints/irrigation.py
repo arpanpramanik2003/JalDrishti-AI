@@ -248,11 +248,27 @@ async def get_irrigation_recommendation(payload: IrrigationRequest, db: Session 
                 f"will keep field moisture optimal. No pumping required."
             )
 
-    # 9. COMPUTE CUMULATIVE FARMER SAVINGS (ROI Tracker)
-    skipped_count = 1 if rain_hold_active else 0
-    cum_water_liters = round((gross_water_mm if gross_water_mm > 0 else 18.5) * area_sqm * (skipped_count + 3), 0)
-    cum_pump_hours = round((cum_water_liters / flow_lps) / 3600.0, 1)
-    cum_money_saved = round(cum_pump_hours * 80.0 + (skipped_count * estimated_cost_saved_inr), 0)
+    # 9. DYNAMIC FARMER ROI & SAVINGS TRACKER
+    # Calculate savings dynamically from plot area, method efficiency, database logs & rain-hold events
+    total_logs_count = 0
+    if payload.plot_id:
+        logs_list = db.query(IrrigationLog).filter(IrrigationLog.farm_plot_id == payload.plot_id).all()
+        total_logs_count = len(logs_list)
+
+    # Traditional un-optimized flood irrigation wastes ~45% water compared to JalDrishti precision recommendations
+    saved_water_per_session_mm = max(4.0, (gross_water_mm * 0.45) if gross_water_mm > 0 else 12.0)
+    session_count = max(1, total_logs_count + (1 if rain_hold_active else 0))
+
+    # Total water saved in Liters (1 mm on 1 m² = 1 Liter)
+    cum_water_liters = round(saved_water_per_session_mm * area_sqm * session_count, 0)
+
+    # Pump Hours Saved
+    cum_pump_hours = round(cum_water_liters / (flow_lps * 3600.0), 1)
+
+    # Money Saved in INR (Electricity/Diesel Pumping Tariff ~₹80/hour)
+    cum_money_saved = round(cum_pump_hours * 80.0 + (estimated_cost_saved_inr if rain_hold_active else 0.0), 0)
+
+    # Carbon Footprint Reduction (2.8 kg CO2 per pump hour)
     cum_co2_kg = round(cum_pump_hours * 2.8, 1)
 
     cumulative_savings = CumulativeSavings(
@@ -260,7 +276,7 @@ async def get_irrigation_recommendation(payload: IrrigationRequest, db: Session 
         total_pump_hours_saved=cum_pump_hours,
         total_money_saved_inr=cum_money_saved,
         total_co2_reduced_kg=cum_co2_kg,
-        skipped_runs_count=skipped_count + 4
+        skipped_runs_count=session_count
     )
 
     soil_display = SOIL_DISPLAY_MAP.get(payload.soil_type, "Clay Loam (High Retention)")
