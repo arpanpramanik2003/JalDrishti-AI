@@ -6,7 +6,9 @@ import 'package:lucide_icons/lucide_icons.dart';
 import 'package:provider/provider.dart';
 import '../core/constants/api_constants.dart';
 import '../providers/farm_plot_provider.dart';
+import '../providers/notification_provider.dart';
 import '../widgets/app_drawer.dart';
+import 'add_edit_farm_plot_screen.dart';
 
 class PestAdvisoryScreen extends StatefulWidget {
   const PestAdvisoryScreen({super.key});
@@ -29,17 +31,26 @@ class _PestAdvisoryScreenState extends State<PestAdvisoryScreen> {
   }
 
   Future<void> _fetchPestAdvisory() async {
+    final farmPlotProvider = Provider.of<FarmPlotProvider>(context, listen: false);
+    final plot = farmPlotProvider.selectedPlot;
+
+    if (plot == null) {
+      setState(() {
+        _isLoading = false;
+        _advisoryData = null;
+        _errorMessage = null;
+      });
+      return;
+    }
+
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
 
-    final farmPlotProvider = Provider.of<FarmPlotProvider>(context, listen: false);
-    final plot = farmPlotProvider.selectedPlot;
-
-    final cropId = plot?.cropId ?? 'paddy_rice';
-    final lat = plot?.latitude ?? 22.5726;
-    final lon = plot?.longitude ?? 88.3639;
+    final cropId = plot.cropId;
+    final lat = plot.latitude;
+    final lon = plot.longitude;
 
     try {
       final response = await http.post(
@@ -53,10 +64,27 @@ class _PestAdvisoryScreenState extends State<PestAdvisoryScreen> {
       );
 
       if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
         setState(() {
-          _advisoryData = jsonDecode(response.body);
+          _advisoryData = data;
           _isLoading = false;
         });
+
+        // Trigger native device push notification for Critical or High weather disease alerts
+        if (mounted) {
+          final notifProvider = Provider.of<NotificationProvider>(context, listen: false);
+          final list = data['advisories'] as List? ?? [];
+          for (var item in list) {
+            final risk = item['risk_level']?.toString().toUpperCase();
+            if (risk == 'CRITICAL' || risk == 'HIGH') {
+              notifProvider.addNotification(
+                title: '⚠️ ${item['disease_name'] ?? 'Pest Warning'} (${item['risk_level']})',
+                body: '${item['category']} alert for ${plot.name}. ${item['chemical_treatment'] ?? ''}',
+                type: 'weather',
+              );
+            }
+          }
+        }
       } else {
         setState(() {
           _errorMessage = 'Failed to load weather pest advisory (${response.statusCode})';
@@ -120,35 +148,83 @@ class _PestAdvisoryScreenState extends State<PestAdvisoryScreen> {
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator(color: Color(0xFF38BDF8)))
-          : _errorMessage != null
+          : activePlot == null
               ? Center(
                   child: Padding(
                     padding: const EdgeInsets.all(24.0),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(LucideIcons.alertTriangle, color: Colors.orangeAccent, size: 48),
-                        const SizedBox(height: 12),
-                        Text(
-                          _errorMessage!,
-                          style: GoogleFonts.inter(color: subtextColor, fontSize: 14),
-                          textAlign: TextAlign.center,
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF38BDF8).withValues(alpha: 0.15),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(LucideIcons.sprout, color: Color(0xFF38BDF8), size: 48),
                         ),
                         const SizedBox(height: 16),
+                        Text(
+                          'No Farm Plot Added Yet',
+                          style: GoogleFonts.outfit(color: textColor, fontSize: 20, fontWeight: FontWeight.bold),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Add your farm plot and crop in JalDrishti to get personalized micro-climate disease and pest warning alerts for your field.',
+                          style: GoogleFonts.inter(color: subtextColor, fontSize: 13, height: 1.4),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 20),
                         ElevatedButton.icon(
-                          onPressed: _fetchPestAdvisory,
-                          icon: const Icon(LucideIcons.refreshCw, size: 16),
-                          label: const Text('Try Again'),
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => const AddEditFarmPlotScreen()),
+                            );
+                          },
+                          icon: const Icon(LucideIcons.plusCircle, size: 18),
+                          label: Text('Add Farm Plot', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF0284C7),
                             foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           ),
                         ),
                       ],
                     ),
                   ),
                 )
-              : RefreshIndicator(
+              : _errorMessage != null
+                  ? Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(24.0),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(LucideIcons.alertTriangle, color: Colors.orangeAccent, size: 48),
+                            const SizedBox(height: 12),
+                            Text(
+                              _errorMessage!,
+                              style: GoogleFonts.inter(color: subtextColor, fontSize: 14),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 16),
+                            ElevatedButton.icon(
+                              onPressed: _fetchPestAdvisory,
+                              icon: const Icon(LucideIcons.refreshCw, size: 16),
+                              label: const Text('Try Again'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF0284C7),
+                                foregroundColor: Colors.white,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  : RefreshIndicator(
                   onRefresh: _fetchPestAdvisory,
                   color: const Color(0xFF38BDF8),
                   backgroundColor: const Color(0xFF1E293B),
@@ -179,7 +255,7 @@ class _PestAdvisoryScreenState extends State<PestAdvisoryScreen> {
                                   const SizedBox(width: 10),
                                   Expanded(
                                     child: Text(
-                                      'Active Crop: ${activePlot?.cropId.replaceAll('_', ' ').toUpperCase() ?? 'PADDY RICE'}',
+                                      'Active Crop: ${activePlot.cropId.replaceAll('_', ' ').toUpperCase()}',
                                       style: GoogleFonts.outfit(
                                         color: Colors.white,
                                         fontSize: 16,
