@@ -8,6 +8,7 @@ import '../providers/farm_plot_provider.dart';
 import 'onboarding_survey_screen.dart';
 import 'add_edit_farm_plot_screen.dart';
 import 'settings_screen.dart';
+import 'login_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -379,6 +380,13 @@ class ProfileScreen extends StatelessWidget {
               child: OutlinedButton.icon(
                 onPressed: () async {
                   await auth.logout();
+                  if (context.mounted) {
+                    Navigator.pushAndRemoveUntil(
+                      context,
+                      MaterialPageRoute(builder: (_) => const LoginScreen()),
+                      (route) => false,
+                    );
+                  }
                 },
                 icon: const Icon(LucideIcons.logOut, color: Colors.redAccent),
                 label: Text(
