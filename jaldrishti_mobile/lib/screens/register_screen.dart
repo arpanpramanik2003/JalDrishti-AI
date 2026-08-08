@@ -217,6 +217,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               TextFormField(
                                 controller: _usernameController,
                                 maxLength: 30,
+                                enableInteractiveSelection: true,
+                                onTap: () {
+                                  if (!_usernameController.selection.isCollapsed) {
+                                    _usernameController.selection = TextSelection.collapsed(
+                                      offset: _usernameController.selection.extentOffset,
+                                    );
+                                  }
+                                },
                                 inputFormatters: [
                                   FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9_]')),
                                 ],
@@ -241,6 +249,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 controller: _phoneController,
                                 keyboardType: TextInputType.phone,
                                 maxLength: 15,
+                                enableInteractiveSelection: true,
+                                onTap: () {
+                                  if (!_phoneController.selection.isCollapsed) {
+                                    _phoneController.selection = TextSelection.collapsed(
+                                      offset: _phoneController.selection.extentOffset,
+                                    );
+                                  }
+                                },
                                 inputFormatters: [
                                   FilteringTextInputFormatter.allow(RegExp(r'[\+0-9]')),
                                 ],
@@ -265,6 +281,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 controller: _passwordController,
                                 obscureText: _obscurePassword,
                                 maxLength: 64,
+                                enableInteractiveSelection: true,
+                                onTap: () {
+                                  if (!_passwordController.selection.isCollapsed) {
+                                    _passwordController.selection = TextSelection.collapsed(
+                                      offset: _passwordController.selection.extentOffset,
+                                    );
+                                  }
+                                },
                                 style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
                                 decoration: _buildInputDecoration(
                                   hintText: 'Minimum 6 characters',
@@ -276,9 +300,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                       size: 18,
                                     ),
                                     onPressed: () {
+                                      final curSelection = _passwordController.selection;
                                       setState(() {
                                         _obscurePassword = !_obscurePassword;
                                       });
+                                      if (curSelection.isValid) {
+                                        _passwordController.selection = curSelection;
+                                      }
                                     },
                                   ),
                                 ),
@@ -298,6 +326,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 controller: _confirmPasswordController,
                                 obscureText: _obscureConfirmPassword,
                                 maxLength: 64,
+                                enableInteractiveSelection: true,
+                                onTap: () {
+                                  if (!_confirmPasswordController.selection.isCollapsed) {
+                                    _confirmPasswordController.selection = TextSelection.collapsed(
+                                      offset: _confirmPasswordController.selection.extentOffset,
+                                    );
+                                  }
+                                },
                                 style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
                                 decoration: _buildInputDecoration(
                                   hintText: 'Re-enter your password',
@@ -309,9 +345,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                       size: 18,
                                     ),
                                     onPressed: () {
+                                      final curSelection = _confirmPasswordController.selection;
                                       setState(() {
                                         _obscureConfirmPassword = !_obscureConfirmPassword;
                                       });
+                                      if (curSelection.isValid) {
+                                        _confirmPasswordController.selection = curSelection;
+                                      }
                                     },
                                   ),
                                 ),

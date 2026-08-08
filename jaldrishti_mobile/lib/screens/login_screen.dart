@@ -223,6 +223,14 @@ class _LoginScreenState extends State<LoginScreen> {
                               TextFormField(
                                 controller: _identifierController,
                                 maxLength: 50,
+                                enableInteractiveSelection: true,
+                                onTap: () {
+                                  if (!_identifierController.selection.isCollapsed) {
+                                    _identifierController.selection = TextSelection.collapsed(
+                                      offset: _identifierController.selection.extentOffset,
+                                    );
+                                  }
+                                },
                                 inputFormatters: [
                                   FilteringTextInputFormatter.deny(RegExp(r"[<>'\\;]")),
                                 ],
@@ -268,6 +276,14 @@ class _LoginScreenState extends State<LoginScreen> {
                                 controller: _passwordController,
                                 obscureText: _obscurePassword,
                                 maxLength: 64,
+                                enableInteractiveSelection: true,
+                                onTap: () {
+                                  if (!_passwordController.selection.isCollapsed) {
+                                    _passwordController.selection = TextSelection.collapsed(
+                                      offset: _passwordController.selection.extentOffset,
+                                    );
+                                  }
+                                },
                                 style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
                                 decoration: _buildInputDecoration(
                                   hintText: 'Enter your password',
@@ -279,9 +295,13 @@ class _LoginScreenState extends State<LoginScreen> {
                                       size: 18,
                                     ),
                                     onPressed: () {
+                                      final curSelection = _passwordController.selection;
                                       setState(() {
                                         _obscurePassword = !_obscurePassword;
                                       });
+                                      if (curSelection.isValid) {
+                                        _passwordController.selection = curSelection;
+                                      }
                                     },
                                   ),
                                 ),
