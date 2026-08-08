@@ -1,6 +1,7 @@
 import os
 import re
 import math
+from datetime import datetime, timedelta
 from typing import Optional, List, Dict, Any
 from groq import AsyncGroq
 from app.core.config import settings
@@ -12,7 +13,7 @@ class LightweightDocSearch:
     """
     def __init__(self, docs_dir: str):
         self.docs_dir = docs_dir
-        self.chunks: List[Dict[str, str]] = []
+        self.chunks: List[Dict[str, Any]] = []
         self._load_and_index_docs()
 
     def _tokenize(self, text: str) -> List[str]:
@@ -20,32 +21,27 @@ class LightweightDocSearch:
 
     def _load_and_index_docs(self):
         if not os.path.exists(self.docs_dir):
-            os.makedirs(self.docs_dir)
+            print(f"[Warning] POP docs directory missing: {self.docs_dir}")
             return
 
-        for filename in os.listdir(self.docs_dir):
-            if filename.endswith(".txt"):
-                filepath = os.path.join(self.docs_dir, filename)
+        for fname in os.listdir(self.docs_dir):
+            if fname.endswith(".txt"):
+                fpath = os.path.join(self.docs_dir, fname)
                 try:
-                    with open(filepath, "r", encoding="utf-8") as f:
+                    with open(fpath, "r", encoding="utf-8") as f:
                         content = f.read()
-                        # Split by double newlines or headers to create logical chunks
-                        paragraphs = [p.strip() for p in content.split("\n\n") if len(p.strip()) > 30]
-                        for p in paragraphs:
-                            tokens = self._tokenize(p)
+                        paras = [p.strip() for p in content.split("\n\n") if len(p.strip()) > 40]
+                        for p in paras:
                             self.chunks.append({
                                 "text": p,
-                                "source": filename,
-                                "tokens": set(tokens)
+                                "tokens": set(self._tokenize(p))
                             })
                 except Exception as e:
-                    print(f"[Warning] Failed to read {filename}: {e}")
-        print(f"[Info] Indexed {len(self.chunks)} agricultural PoP document chunks!")
+                    print(f"[Warning] Failed reading doc {fname}: {e}")
+
+        print(f"[Info] Lightweight RAG indexed {len(self.chunks)} agricultural document chunks.")
 
     def search(self, query: str, top_k: int = 3) -> str:
-        if not self.chunks:
-            return ""
-
         query_tokens = set(self._tokenize(query))
         if not query_tokens:
             return ""
@@ -86,9 +82,10 @@ class RAGService:
         farmer_name: Optional[str] = None,
         location_name: Optional[str] = None,
         current_crop: Optional[str] = None,
-        farm_area_acres: Optional[float] = None
+        farm_area_acres: Optional[float] = None,
+        weather_data: Optional[dict] = None
     ) -> str:
-        """Async Non-Blocking Personalized Agronomy Companion."""
+        """Async Non-Blocking Personalized Agronomy Companion with Live Satellite Weather Context."""
         
         clean_q = query.strip().lower()
         farmer_name_greet = farmer_name if farmer_name else "Farmer"
@@ -114,6 +111,35 @@ class RAGService:
             
         farmer_context_str = ", ".join(farmer_ctx_parts) if farmer_ctx_parts else "General Farmer"
 
+        # Process Live Weather & 7-Day Forecast Telemetry
+        weather_context_str = "No live weather telemetry available."
+        if weather_data and "daily_weather" in weather_data:
+            today_str = datetime.now().strftime("%Y-%m-%d")
+            tomorrow_str = (datetime.now() + timedelta(days=1)).strftime("%Y-%m-%d")
+            daily = weather_data["daily_weather"]
+            lines = []
+            for date_key, metrics in daily.items():
+                max_t = metrics.get("temp_max_c", 0.0)
+                min_t = metrics.get("temp_min_c", 0.0)
+                hum = metrics.get("humidity_percent", 0.0)
+                rain = metrics.get("precipitation_mm", 0.0)
+                wind_ms = metrics.get("wind_speed_m_s", 0.0)
+                wind_kmh = wind_ms * 3.6
+                
+                day_tag = ""
+                if date_key == today_str:
+                    day_tag = " [TODAY / আজ / आज]"
+                elif date_key == tomorrow_str:
+                    day_tag = " [TOMORROW / আগামী কাল / कल]"
+                    
+                rain_text = f"🌧️ RAIN EXPECTED ({rain:.1f} mm)" if rain >= 1.5 else f"☀️ Clear/Dry ({rain:.1f} mm rain)"
+                
+                lines.append(
+                    f"- Date {date_key}{day_tag}: Max Temp {max_t:.1f}°C, Min Temp {min_t:.1f}°C, "
+                    f"Humidity {hum:.0f}%, Wind Speed {wind_kmh:.1f} km/h, {rain_text}"
+                )
+            weather_context_str = "\n".join(lines)
+
         # Retrieve relevant localized document context
         context_text = self.doc_search.search(query, top_k=3)
 
@@ -121,18 +147,24 @@ class RAGService:
         system_prompt = (
             "You are JalSathi AI (জলসাথী AI) 🌾, an expert, warm, and highly practical Agronomy Assistant for Indian farmers.\n\n"
             f"FARMER PROFILE:\n{farmer_context_str}\n\n"
-            "STRICT MULTILINGUAL & CONVERSATIONAL RULES:\n"
+            f"LIVE REAL-TIME SATELLITE WEATHER TELEMETRY & FORECAST (Open-Meteo Data):\n{weather_context_str}\n\n"
+            "STRICT MULTILINGUAL & WEATHER RULES:\n"
             f"1. LANGUAGE SCRIPT: Respond ENTIRELY in the requested target language ({language}).\n"
             "   - If Language is 'Bengali', respond ONLY in fluent, natural Bengali script (বাংলা).\n"
             "   - If Language is 'Hindi', respond ONLY in fluent, natural Hindi Devanagari script (हिंदी).\n"
             "   - If Language is 'English', respond in clear English.\n"
-            "2. GRATITUDE & CLOSURE: If the farmer says thanks, dhanyabad, dhanyavaad, or goodbye, give a warm, polite closing wish for a bountiful harvest. DO NOT ask robotic follow-up questions.\n"
-            "3. STRUCTURED DUAL SOLUTION (Chemical & Bio-Organic):\n"
+            "2. TODAY'S & TOMORROW'S WEATHER INQUIRIES:\n"
+            "   - When the farmer asks about today's weather, tomorrow's weather, or rain forecast (e.g. 'will it rain tomorrow?', 'today weather', 'কাল বৃষ্টি হবে?'):\n"
+            "     * Quote exact dates, Max/Min Temperatures (°C), Relative Humidity (%), and Rain Forecast (mm) from the LIVE WEATHER TELEMETRY above.\n"
+            "     * If rain is expected (>= 1.5 mm), explicitly alert the farmer and advise them to PAUSE or DELAY irrigation to save water and pump electricity!\n"
+            "     * If no rain is expected, provide clear weather parameters and state that field conditions are dry.\n"
+            "3. GRATITUDE & CLOSURE: If the farmer says thanks, dhanyabad, dhanyavaad, or goodbye, give a warm, polite closing wish for a bountiful harvest. DO NOT ask robotic follow-up questions.\n"
+            "4. STRUCTURED DUAL SOLUTION (Chemical & Bio-Organic):\n"
             "   - When answering crop disease, pest, or fertilizer questions, ALWAYS provide:\n"
             "     * 🧪 **Chemical Treatment**: Exact chemical name and dosage per acre (e.g. Cartap 4G @ 10 kg/acre, Mancozeb @ 2.5 g/L).\n"
             "     * 🌿 **Organic / Bio-Alternative**: Natural treatment (e.g. Neem Oil 10,000 ppm, Pseudomonas fluorescens, Trichoderma viride).\n"
             "     * 💡 **Preventive Cultural Tip**: Field drainage, crop rotation, or earthing up advice.\n"
-            "4. UNITS: Use Indian agricultural units (Acres, Bigha, kg, g, Liters, mL).\n\n"
+            "5. UNITS: Use Indian agricultural units (Acres, Bigha, kg, g, Liters, mL).\n\n"
             f"AGRICULTURAL KNOWLEDGE BASE (Package of Practices):\n{context_text if context_text else 'No localized document context matched.'}\n"
         )
 

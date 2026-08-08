@@ -28,7 +28,7 @@ class ApiService {
     }
   }
 
-  // Fetch Groq RAG Chatbot Response with Farmer Context
+  // Fetch Groq RAG Chatbot Response with Farmer Context & Weather Telemetry
   static Future<String> askChatbot({
     required String query,
     required String language,
@@ -36,6 +36,8 @@ class ApiService {
     String? locationName,
     String? currentCrop,
     double? farmAreaAcres,
+    double? latitude,
+    double? longitude,
   }) async {
     final response = await http.post(
       Uri.parse(ApiConstants.chatbotEndpoint),
@@ -47,6 +49,8 @@ class ApiService {
         if (locationName != null) 'location_name': locationName,
         if (currentCrop != null) 'current_crop': currentCrop,
         if (farmAreaAcres != null) 'farm_area_acres': farmAreaAcres,
+        if (latitude != null) 'latitude': latitude,
+        if (longitude != null) 'longitude': longitude,
       }),
     );
 

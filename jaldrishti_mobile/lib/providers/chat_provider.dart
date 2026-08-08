@@ -168,6 +168,8 @@ class ChatProvider extends ChangeNotifier {
     String? locationName,
     String? currentCrop,
     double? farmAreaAcres,
+    double? latitude,
+    double? longitude,
   }) async {
     if (text.trim().isEmpty) return;
 
@@ -193,6 +195,8 @@ class ChatProvider extends ChangeNotifier {
         locationName: locationName,
         currentCrop: currentCrop,
         farmAreaAcres: farmAreaAcres,
+        latitude: latitude,
+        longitude: longitude,
       );
 
       final botMessage = ChatMessage(

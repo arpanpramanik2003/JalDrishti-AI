@@ -101,6 +101,8 @@ class _ChatScreenState extends State<ChatScreen> {
       locationName: locationName,
       currentCrop: currentCrop,
       farmAreaAcres: areaAcres,
+      latitude: activePlot?.latitude,
+      longitude: activePlot?.longitude,
     );
 
     // Smooth scroll to latest message (reverse ListView)
