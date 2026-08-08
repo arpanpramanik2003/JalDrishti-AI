@@ -671,6 +671,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         subtitle: Text('Alerts when heavy rain is expected', style: GoogleFonts.inter(fontSize: 12, color: subtextColor)),
                         activeThumbColor: const Color(0xFF38BDF8),
                       ),
+                      Divider(color: borderColor, height: 1),
+                      ListTile(
+                        leading: _buildIconBadge(LucideIcons.bellRing, const Color(0xFFEF4444), isDark),
+                        title: Text('🧪 Test Push Notification', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: const Color(0xFFEF4444))),
+                        subtitle: Text('Send a sample Weather & Pest Warning alert to your phone status bar', style: GoogleFonts.inter(fontSize: 12, color: subtextColor)),
+                        trailing: const Icon(LucideIcons.send, size: 18, color: Color(0xFFEF4444)),
+                        onTap: () {
+                          notif.addNotification(
+                            title: '⚠️ CRITICAL: Weather Disease Warning (Rice Blast)',
+                            body: 'High humidity (89%) & temp (31°C) in Paddy Plot. Apply Tricyclazole 75 WP @ 0.6g/L immediately.',
+                            type: 'weather',
+                          );
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('🔔 Test push notification sent to status bar & lock screen!'),
+                              backgroundColor: Color(0xFF0284C7),
+                            ),
+                          );
+                        },
+                      ),
                     ],
                   ),
                 );

@@ -140,6 +140,24 @@ class _PestAdvisoryScreenState extends State<PestAdvisoryScreen> {
         ),
         actions: [
           IconButton(
+            icon: const Icon(LucideIcons.bellRing, size: 20, color: Color(0xFFEF4444)),
+            onPressed: () {
+              final notifProvider = Provider.of<NotificationProvider>(context, listen: false);
+              notifProvider.addNotification(
+                title: '⚠️ CRITICAL: Weather Disease Warning (Rice Blast)',
+                body: 'High humidity (89%) & temp (31°C) in Paddy Plot. Apply Tricyclazole 75 WP @ 0.6g/L immediately.',
+                type: 'weather',
+              );
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('🔔 Test push notification sent to status bar & lock screen!'),
+                  backgroundColor: Color(0xFF0284C7),
+                ),
+              );
+            },
+            tooltip: 'Send Test Warning Push Notification',
+          ),
+          IconButton(
             icon: const Icon(LucideIcons.refreshCw, size: 20, color: Color(0xFF38BDF8)),
             onPressed: _fetchPestAdvisory,
             tooltip: 'Refresh Weather Risks',
