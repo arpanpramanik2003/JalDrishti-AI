@@ -20,8 +20,8 @@ class WeatherService:
             return cached_data
 
         params = {
-            "latitude": lat,
-            "longitude": lon,
+            "latitude": grid_lat,
+            "longitude": grid_lon,
             "daily": "temperature_2m_max,temperature_2m_min,relative_humidity_2m_mean,shortwave_radiation_sum,wind_speed_10m_max,precipitation_sum",
             "timezone": "auto",
             "past_days": past_days,
