@@ -25,6 +25,8 @@ htmlcov/
 .env
 .env.local
 .env.*.local
+firebase_service_account.json
+*.json.key
 
 # Databases & Local SQLite (Migrated to Supabase)
 *.db

@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../core/constants/api_constants.dart';
+import '../core/services/fcm_service.dart';
 import '../models/user_model.dart';
 
 class AuthProvider extends ChangeNotifier {
@@ -78,6 +79,7 @@ class AuthProvider extends ChangeNotifier {
 
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('jwt_token', _token!);
+        FcmService.syncDeviceTokenWithBackend(_token!);
         return true;
       } else {
         _errorMessage = data['detail'] ?? 'Registration failed.';
@@ -120,6 +122,7 @@ class AuthProvider extends ChangeNotifier {
 
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('jwt_token', _token!);
+        FcmService.syncDeviceTokenWithBackend(_token!);
         return true;
       } else {
         _errorMessage = data['detail'] ?? 'Invalid credentials.';

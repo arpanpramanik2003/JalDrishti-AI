@@ -26,6 +26,11 @@ try:
             if "soil_type" not in columns:
                 conn.execute(text("ALTER TABLE farm_plots ADD COLUMN soil_type VARCHAR(30) DEFAULT 'clay_loam'"))
             conn.commit()
+        if "users" in inspector.get_table_names():
+            columns = [c["name"] for c in inspector.get_columns("users")]
+            if "fcm_token" not in columns:
+                conn.execute(text("ALTER TABLE users ADD COLUMN fcm_token VARCHAR(255)"))
+            conn.commit()
 except Exception as e:
     print(f"[Info] Migration check notice: {e}")
 
@@ -33,6 +38,21 @@ app = FastAPI(
     title=settings.PROJECT_NAME,
     openapi_url=f"{settings.API_V1_STR}/openapi.json"
 )
+
+# Start Automated Background Weather & Disease Scheduler (Runs every 12 hours)
+try:
+    from apscheduler.schedulers.asyncio import AsyncIOScheduler
+    from app.services.automated_advisory_cron import run_daily_weather_and_pest_batch_job
+
+    scheduler = AsyncIOScheduler()
+
+    @app.on_event("startup")
+    def start_automated_scheduler():
+        scheduler.add_job(run_daily_weather_and_pest_batch_job, 'interval', hours=12)
+        scheduler.start()
+        print("[Scheduler] Automated background weather & pest monitoring scheduler active.")
+except Exception as scheduler_err:
+    print(f"[Scheduler Notice] {scheduler_err}")
 
 # Rate Limiting Middleware (10 requests per minute on login/register to prevent brute force)
 app.add_middleware(RateLimiterMiddleware, max_requests=10, window_seconds=60)

@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
 from app.db.database import get_db
@@ -287,3 +288,22 @@ def verify_phone_update_otp(
     db.refresh(current_user)
 
     return current_user
+
+
+class FcmTokenUpdateRequest(BaseModel):
+    fcm_token: str = Field(..., description="Device Firebase Push Token")
+
+
+@router.post("/update-fcm-token")
+def update_user_fcm_token(
+    payload: FcmTokenUpdateRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Registers or updates the farmer's mobile FCM push notification token.
+    """
+    current_user.fcm_token = payload.fcm_token.strip()
+    db.commit()
+    db.refresh(current_user)
+    return {"status": "success", "message": "FCM device token registered successfully."}

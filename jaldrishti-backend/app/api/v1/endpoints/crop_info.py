@@ -75,3 +75,13 @@ async def get_weather_pest_advisory(payload: PestAdvisoryRequest):
         "total_active_warnings": len(advisories),
         "advisories": advisories
     }
+
+
+@router.post("/trigger-batch-advisories")
+async def trigger_batch_advisories():
+    """
+    Manually triggers the background daily weather evaluation batch job across all registered farmer plots.
+    """
+    from app.services.automated_advisory_cron import run_daily_weather_and_pest_batch_job
+    result = await run_daily_weather_and_pest_batch_job()
+    return result

@@ -64,6 +64,7 @@ class ApiConstants {
   static String get loginEndpoint => '$baseUrl/auth/login';
   static String get meEndpoint => '$baseUrl/auth/me';
   static String get updateProfileEndpoint => '$baseUrl/auth/profile';
+  static String get updateFcmTokenEndpoint => '$baseUrl/auth/update-fcm-token';
 
   static String get requestOtpEndpoint => '$baseUrl/auth/forgot-password/request-otp';
   static String get resetPasswordEndpoint => '$baseUrl/auth/forgot-password/reset-password';

@@ -10,10 +10,12 @@ import 'core/theme/app_theme.dart';
 import 'screens/main_navigation_screen.dart';
 import 'screens/login_screen.dart';
 import 'core/constants/api_constants.dart';
+import 'core/services/fcm_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await ApiConstants.init();
+  await FcmService().init();
 
   runApp(
     MultiProvider(
