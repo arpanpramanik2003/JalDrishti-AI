@@ -185,20 +185,24 @@ class DashboardPumpCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 6),
                 Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
                       'Irrigation System',
                       style: GoogleFonts.inter(fontSize: 11, color: subtextColor),
                     ),
-                    const SizedBox(width: 8),
-                    Flexible(
+                    const SizedBox(width: 12),
+                    Expanded(
                       child: Text(
                         '$methodDisplay ($effPct%)',
                         textAlign: TextAlign.end,
-                        overflow: TextOverflow.ellipsis,
-                        maxLines: 1,
-                        style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600, color: textColor),
+                        softWrap: true,
+                        style: GoogleFonts.inter(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: textColor,
+                        ),
                       ),
                     ),
                   ],
