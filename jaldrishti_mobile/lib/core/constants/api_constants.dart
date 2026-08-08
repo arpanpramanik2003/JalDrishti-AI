@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb, defaultTargetPlatform, TargetPlatform;
+import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;
 
 class ApiConstants {
   // Live Production Backend Server on Render
@@ -7,11 +7,8 @@ class ApiConstants {
   // Local Development Backend Server (for USB / IDE debugging)
   static String get localBaseUrl {
     if (kIsWeb) return 'http://localhost:8000/api/v1';
-    if (defaultTargetPlatform == TargetPlatform.android) {
-      // Localhost works for USB physical phone debugging with adb reverse tcp:8000 tcp:8000
-      return 'http://localhost:8000/api/v1';
-    }
-    return 'http://localhost:8000/api/v1';
+    // Use your PC's local network IP so physical Android phones over USB / Wi-Fi can connect directly
+    return 'http://10.249.147.69:8000/api/v1';
   }
 
   /// Initialize (No-op placeholder for app main startup compatibility)
