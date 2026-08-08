@@ -207,12 +207,21 @@ async def get_irrigation_recommendation(payload: IrrigationRequest, db: Session 
         pump_minutes = int(round((total_pump_seconds % 3600) / 60.0))
 
     # 8. SMART RAIN HOLD & COST SAVINGS ENGINE
-    # Check upcoming 48-hour rainfall forecast after today_idx
-    upcoming_rain_mm = 0.0
+    # Check upcoming 24-hour and 48-hour rainfall forecast after today_idx
+    upcoming_rain_24h_mm = 0.0
+    upcoming_rain_48h_mm = 0.0
+
     if len(date_keys) > today_idx + 1:
-        for f_date in date_keys[today_idx + 1 : today_idx + 3]: # next 2 days after today
-            upcoming_rain_mm += daily_weather[f_date].get("precipitation_mm", 0.0)
-    upcoming_rain_mm = round(upcoming_rain_mm, 1)
+        # Next 24 hours (Tomorrow)
+        next_day_date = date_keys[today_idx + 1]
+        upcoming_rain_24h_mm = round(daily_weather[next_day_date].get("precipitation_mm", 0.0), 1)
+
+        # Next 48 hours (Tomorrow + Day after)
+        for f_date in date_keys[today_idx + 1 : today_idx + 3]:
+            upcoming_rain_48h_mm += daily_weather[f_date].get("precipitation_mm", 0.0)
+
+    upcoming_rain_48h_mm = round(upcoming_rain_48h_mm, 1)
+    upcoming_rain_mm = upcoming_rain_24h_mm  # 24h forecast as primary
 
     needs_irrigation_today = today_decision.get("needs_irrigation", False)
     status_summary = today_decision.get("status", "OPTIMAL")
@@ -220,8 +229,8 @@ async def get_irrigation_recommendation(payload: IrrigationRequest, db: Session 
     rain_hold_message = None
     estimated_cost_saved_inr = 0.0
 
-    # Trigger Smart Rain Hold if upcoming rain >= 5.0 mm or today's precipitation is active
-    if (upcoming_rain_mm >= 5.0 or (weather_summary and weather_summary.precipitation_mm >= 4.0)):
+    # Trigger Smart Rain Hold if 24h rain >= 3.0mm, 48h rain >= 5.0mm, or today's precipitation is active
+    if (upcoming_rain_24h_mm >= 3.0 or upcoming_rain_48h_mm >= 5.0 or (weather_summary and weather_summary.precipitation_mm >= 4.0)):
         rain_hold_active = True
         if needs_irrigation_today:
             needs_irrigation_today = False
@@ -229,13 +238,14 @@ async def get_irrigation_recommendation(payload: IrrigationRequest, db: Session 
             hours_saved = max(total_pump_seconds / 3600.0, 1.5)
             estimated_cost_saved_inr = round(hours_saved * 80.0, 0)
             rain_hold_message = (
-                f"🌧️ SMART RAIN HOLD ACTIVE: Heavy rain ({upcoming_rain_mm} mm) is forecast in the next 24-48 hours. "
+                f"🌧️ SMART RAIN HOLD ACTIVE: Forecast predicts {upcoming_rain_24h_mm} mm rain in next 24h "
+                f"({upcoming_rain_48h_mm} mm over 48h). "
                 f"Skip irrigation today to prevent soil waterlogging and save ~₹{int(estimated_cost_saved_inr)} in pumping costs!"
             )
         else:
             rain_hold_message = (
-                f"🌧️ RAIN ADVISORY: Upcoming rainfall ({upcoming_rain_mm} mm) will keep field moisture optimal. "
-                f"No pumping required."
+                f"🌧️ RAIN ADVISORY: Upcoming rainfall ({upcoming_rain_24h_mm} mm in 24h / {upcoming_rain_48h_mm} mm in 48h) "
+                f"will keep field moisture optimal. No pumping required."
             )
 
     # 9. COMPUTE CUMULATIVE FARMER SAVINGS (ROI Tracker)
@@ -276,7 +286,9 @@ async def get_irrigation_recommendation(payload: IrrigationRequest, db: Session 
         status_summary=status_summary,
         rain_hold_active=rain_hold_active,
         rain_hold_message=rain_hold_message,
-        upcoming_rain_mm=upcoming_rain_mm,
+        upcoming_rain_mm=upcoming_rain_24h_mm,
+        upcoming_rain_24h_mm=upcoming_rain_24h_mm,
+        upcoming_rain_48h_mm=upcoming_rain_48h_mm,
         estimated_cost_saved_inr=estimated_cost_saved_inr,
         cumulative_savings=cumulative_savings,
         weather_summary=weather_summary,

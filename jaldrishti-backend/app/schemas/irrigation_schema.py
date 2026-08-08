@@ -83,6 +83,8 @@ class IrrigationResponse(BaseModel):
     rain_hold_active: bool = False
     rain_hold_message: Optional[str] = None
     upcoming_rain_mm: float = 0.0
+    upcoming_rain_24h_mm: float = 0.0
+    upcoming_rain_48h_mm: float = 0.0
     estimated_cost_saved_inr: float = 0.0
     cumulative_savings: Optional[CumulativeSavings] = None
 

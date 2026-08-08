@@ -78,7 +78,7 @@ class SmartRainHoldCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        'Rain Forecast: ${upcomingRainMm.toStringAsFixed(1)} mm in 24h',
+                        'Rain Forecast: ${upcomingRainMm.toStringAsFixed(1)} mm upcoming',
                         style: GoogleFonts.inter(
                           color: Colors.white70,
                           fontSize: 12,
