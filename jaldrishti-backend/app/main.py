@@ -81,6 +81,16 @@ app.include_router(
 def root():
     return {
         "app": settings.PROJECT_NAME,
-        "status": "online",
+        "status": "healthy",
         "documentation": "/docs"
+    }
+
+@app.get("/healthy", tags=["Health Check"])
+@app.get("/health", tags=["Health Check"])
+@app.get(f"{settings.API_V1_STR}/healthy", tags=["Health Check"])
+@app.get(f"{settings.API_V1_STR}/health", tags=["Health Check"])
+def health_check():
+    return {
+        "status": "healthy",
+        "app": settings.PROJECT_NAME
     }
