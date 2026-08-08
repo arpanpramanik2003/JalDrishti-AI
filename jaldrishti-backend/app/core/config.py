@@ -11,9 +11,10 @@ class Settings(BaseSettings):
     NASA_POWER_BASE_URL: str = "https://power.larc.nasa.gov/api/temporal/daily/point"
     SOILGRIDS_BASE_URL: str = "https://rest.isric.org/soilgrids/v2.0/properties/query"
     
-    # GROQ Configurations
+    # GROQ & Weather API Configurations
     GROQ_API_KEY: str = ""
     GROQ_MODEL_NAME: str = "llama-3.3-70b-versatile"
+    WEATHER_API_KEY: str = ""
 
     class Config:
         env_file = ".env"
