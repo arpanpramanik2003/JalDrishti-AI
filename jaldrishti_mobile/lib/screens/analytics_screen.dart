@@ -275,15 +275,19 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         elevation: 0,
         backgroundColor: appBarBg,
         title: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(LucideIcons.barChart2, color: iconColor, size: 22),
-            const SizedBox(width: 8),
-            Text(
-              'Field Analytics',
-              style: GoogleFonts.outfit(
-                color: textColor,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
+            Icon(LucideIcons.barChart2, color: iconColor, size: 20),
+            const SizedBox(width: 6),
+            Flexible(
+              child: Text(
+                'Field Analytics',
+                overflow: TextOverflow.ellipsis,
+                style: GoogleFonts.outfit(
+                  color: textColor,
+                  fontSize: 17,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ],
