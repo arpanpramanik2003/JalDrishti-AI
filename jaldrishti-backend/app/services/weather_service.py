@@ -22,22 +22,20 @@ class WeatherService:
         params = {
             "latitude": lat,
             "longitude": lon,
-            "daily": [
-                "temperature_2m_max",
-                "temperature_2m_min",
-                "relative_humidity_2m_mean",
-                "shortwave_radiation_sum",
-                "wind_speed_10m_max",
-                "precipitation_sum"
-            ],
+            "daily": "temperature_2m_max,temperature_2m_min,relative_humidity_2m_mean,shortwave_radiation_sum,wind_speed_10m_max,precipitation_sum",
             "timezone": "auto",
             "past_days": past_days,
             "forecast_days": forecast_days
         }
 
+        headers = {
+            "User-Agent": "JalDrishti-AI/2.0 (Precision Agriculture Engine; https://jaldrishti-ai.onrender.com)",
+            "Accept": "application/json"
+        }
+
         try:
-            async with httpx.AsyncClient(timeout=15.0) as client:
-                response = await client.get(WeatherService.OPEN_METEO_URL, params=params)
+            async with httpx.AsyncClient(timeout=20.0, follow_redirects=True) as client:
+                response = await client.get(WeatherService.OPEN_METEO_URL, params=params, headers=headers)
                 response.raise_for_status()
                 data = response.json()
 
@@ -68,7 +66,7 @@ class WeatherService:
                 return result
 
         except Exception as e:
-            print(f"⚠️ Weather API network warning ({type(e).__name__}). Using synthetic fallback telemetry.")
+            print(f"⚠️ Weather API network notice ({e}). Using synthetic fallback telemetry.")
             today = datetime.now()
             fallback_daily = {}
             for i in range(-past_days, forecast_days + 1):

@@ -97,7 +97,7 @@ app.include_router(
     tags=["Crop Management"]
 )
 
-@app.get("/")
+@app.api_route("/", methods=["GET", "HEAD"], tags=["Health Check"])
 def root():
     return {
         "app": settings.PROJECT_NAME,
@@ -105,10 +105,10 @@ def root():
         "documentation": "/docs"
     }
 
-@app.get("/healthy", tags=["Health Check"])
-@app.get("/health", tags=["Health Check"])
-@app.get(f"{settings.API_V1_STR}/healthy", tags=["Health Check"])
-@app.get(f"{settings.API_V1_STR}/health", tags=["Health Check"])
+@app.api_route("/healthy", methods=["GET", "HEAD"], tags=["Health Check"])
+@app.api_route("/health", methods=["GET", "HEAD"], tags=["Health Check"])
+@app.api_route(f"{settings.API_V1_STR}/healthy", methods=["GET", "HEAD"], tags=["Health Check"])
+@app.api_route(f"{settings.API_V1_STR}/health", methods=["GET", "HEAD"], tags=["Health Check"])
 def health_check():
     return {
         "status": "healthy",
