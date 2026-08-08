@@ -1,25 +1,61 @@
-import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiConstants {
   // Live Production Backend Server on Render
   static const String productionBaseUrl = 'https://jaldrishti-ai.onrender.com/api/v1';
 
-  // Local Development Backend Server (for USB / IDE debugging)
+  // Local Network IP for USB / LAN debugging
+  static const String defaultLocalIp = '10.249.147.69';
+
+  // Default timeout duration for HTTP requests (45s to accommodate Render cold boot)
+  static const Duration httpTimeout = Duration(seconds: 45);
+
+  static String _activeMode = 'cloud'; // Default to Cloud Render backend
+  static String _customUrl = '';
+
+  // Local Development Backend Server
   static String get localBaseUrl {
     if (kIsWeb) return 'http://localhost:8000/api/v1';
-    // Use your PC's local network IP so physical Android phones over USB / Wi-Fi can connect directly
-    return 'http://10.249.147.69:8000/api/v1';
+    return 'http://$defaultLocalIp:8000/api/v1';
   }
 
-  /// Initialize (No-op placeholder for app main startup compatibility)
-  static Future<void> init() async {}
+  /// Initialize backend settings from SharedPreferences on app boot
+  static Future<void> init() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      _activeMode = prefs.getString('backend_mode') ?? 'cloud';
+      _customUrl = prefs.getString('custom_backend_url') ?? '';
+    } catch (_) {
+      _activeMode = 'cloud';
+    }
+  }
+
+  static String get activeMode => _activeMode;
+  static String get customUrl => _customUrl;
+
+  /// Update backend mode dynamically at runtime
+  static Future<void> setBackendMode(String mode, {String? customUrl}) async {
+    _activeMode = mode;
+    if (customUrl != null) _customUrl = customUrl;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('backend_mode', mode);
+      if (customUrl != null) {
+        await prefs.setString('custom_backend_url', customUrl);
+      }
+    } catch (_) {}
+  }
 
   /// Active Base URL:
-  /// - Automatic Local USB / IDE Backend in kDebugMode (http://localhost:8000/api/v1)
-  /// - Automatic Live Render Cloud in Release / Production (https://jaldrishti-ai.onrender.com/api/v1)
+  /// - Cloud: https://jaldrishti-ai.onrender.com/api/v1
+  /// - Local: http://10.249.147.69:8000/api/v1
+  /// - Custom: user specified URL
   static String get baseUrl {
-    if (kDebugMode) {
+    if (_activeMode == 'local') {
       return localBaseUrl;
+    } else if (_activeMode == 'custom' && _customUrl.trim().isNotEmpty) {
+      return _customUrl.trim();
     }
     return productionBaseUrl;
   }
