@@ -38,7 +38,7 @@ class JalDrishtiApp extends StatelessWidget {
     final themeProvider = Provider.of<ThemeProvider>(context);
 
     return MaterialApp(
-      title: 'JalDrishti Smart Agriculture',
+      title: 'JalDrishti AI',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,

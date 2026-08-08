@@ -6,7 +6,7 @@
     <uses-permission android:name="android.permission.BLUETOOTH" />
 
     <application
-        android:label="jaldrishti_mobile"
+        android:label="JalDrishti AI"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:usesCleartextTraffic="true">
