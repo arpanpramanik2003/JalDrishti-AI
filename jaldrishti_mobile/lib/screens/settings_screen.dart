@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -7,7 +8,6 @@ import '../providers/auth_provider.dart';
 import '../providers/notification_provider.dart';
 import '../providers/theme_provider.dart';
 import '../widgets/server_config_dialog.dart';
-import '../core/constants/api_constants.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -598,13 +598,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   Divider(color: borderColor, height: 1),
                   ListTile(
                     leading: _buildIconBadge(LucideIcons.server, const Color(0xFF38BDF8), isDark),
-                    title: Text('Backend Server Host', style: GoogleFonts.outfit(fontWeight: FontWeight.w600, color: textColor)),
-                    subtitle: Text(ApiConstants.baseUrl, style: GoogleFonts.inter(fontSize: 12, color: subtextColor)),
-                    trailing: const Icon(LucideIcons.chevronRight, size: 18),
-                    onTap: () async {
-                      await ServerConfigDialog.show(context);
-                      setState(() {});
-                    },
+                    title: Text('Cloud Backend Host', style: GoogleFonts.outfit(fontWeight: FontWeight.w600, color: textColor)),
+                    subtitle: Text('https://jaldrishti-ai.onrender.com/api/v1', style: GoogleFonts.inter(fontSize: 12, color: subtextColor)),
+                    trailing: kDebugMode ? const Icon(LucideIcons.chevronRight, size: 18) : null,
+                    onTap: kDebugMode
+                        ? () async {
+                            await ServerConfigDialog.show(context);
+                            setState(() {});
+                          }
+                        : null,
                   ),
                   Divider(color: borderColor, height: 1),
                   ListTile(

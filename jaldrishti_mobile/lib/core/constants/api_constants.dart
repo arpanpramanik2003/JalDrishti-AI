@@ -1,5 +1,4 @@
-import 'dart:io' show Platform;
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiConstants {
@@ -7,6 +6,9 @@ class ApiConstants {
 
   // Support environment configuration via --dart-define=API_BASE_URL=http://...
   static const String _envBaseUrl = String.fromEnvironment('API_BASE_URL');
+
+  // Live Production Backend Server on Render
+  static const String productionBaseUrl = 'https://jaldrishti-ai.onrender.com/api/v1';
 
   static String _customBaseUrl = '';
 
@@ -20,20 +22,15 @@ class ApiConstants {
     }
   }
 
-  /// Dynamic platform-aware default URL
+  /// Dynamic platform-aware default URL (Production Render Server)
   static String get defaultBaseUrl {
     if (_envBaseUrl.isNotEmpty) return _envBaseUrl;
-    if (!kIsWeb && Platform.isAndroid) {
-      // 127.0.0.1 is used for physical Android devices via USB 'adb reverse tcp:8000 tcp:8000'
-      // 10.0.2.2 is host loopback for Android Virtual Device (Emulator)
-      return 'http://127.0.0.1:8000/api/v1';
-    }
-    return 'http://127.0.0.1:8000/api/v1';
+    return productionBaseUrl;
   }
 
-  /// Active Base URL (custom saved > default platform)
+  /// Active Base URL (Production by default, custom URL allowed in kDebugMode for USB/IDE testing)
   static String get baseUrl {
-    if (_customBaseUrl.isNotEmpty) {
+    if (kDebugMode && _customBaseUrl.isNotEmpty) {
       return _customBaseUrl;
     }
     return defaultBaseUrl;

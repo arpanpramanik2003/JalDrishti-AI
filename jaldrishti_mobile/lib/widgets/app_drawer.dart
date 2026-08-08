@@ -9,7 +9,6 @@ import '../screens/analytics_screen.dart';
 import '../screens/chat_screen.dart';
 import '../screens/settings_screen.dart';
 import '../screens/profile_screen.dart';
-import '../widgets/server_config_dialog.dart';
 
 class AppDrawer extends StatelessWidget {
   final String activeRoute;
@@ -230,20 +229,6 @@ class AppDrawer extends StatelessWidget {
                       context,
                       MaterialPageRoute(builder: (_) => const SettingsScreen()),
                     );
-                  },
-                ),
-                _buildDrawerItem(
-                  context,
-                  icon: LucideIcons.server,
-                  title: 'Backend Server Config',
-                  isSelected: false,
-                  selectedBg: itemSelectedBg,
-                  accentColor: const Color(0xFFF59E0B),
-                  textColor: textColor,
-                  subtextColor: subtextColor,
-                  onTap: () {
-                    Navigator.pop(context);
-                    ServerConfigDialog.show(context);
                   },
                 ),
               ],

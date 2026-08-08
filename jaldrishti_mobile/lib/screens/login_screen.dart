@@ -6,7 +6,6 @@ import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import 'register_screen.dart';
 import 'forgot_password_screen.dart';
-import '../widgets/server_config_dialog.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -105,41 +104,6 @@ class _LoginScreenState extends State<LoginScreen> {
                       spreadRadius: 20,
                     ),
                   ],
-                ),
-              ),
-            ),
-
-            // Top Server Settings Action
-            Align(
-              alignment: Alignment.topRight,
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: InkWell(
-                  onTap: () => ServerConfigDialog.show(context),
-                  borderRadius: BorderRadius.circular(20),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF161F30),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: const Color(0xFF26354A)),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(LucideIcons.server, color: Color(0xFF38BDF8), size: 15),
-                        const SizedBox(width: 6),
-                        Text(
-                          'Server',
-                          style: GoogleFonts.inter(
-                            color: const Color(0xFF94A3B8),
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
                 ),
               ),
             ),
