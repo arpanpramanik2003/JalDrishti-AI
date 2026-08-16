@@ -16,13 +16,15 @@ class PestAdvisoryRequest(BaseModel):
     latitude: float = Field(..., example=22.5726, description="Farm Latitude")
     longitude: float = Field(..., example=88.3639, description="Farm Longitude")
 
-@router.get("/all")
+from app.schemas.crop_info_schema import CropListResponse, PestAdvisoryResponse
+
+@router.get("/all", response_model=CropListResponse)
 def get_all_crops():
     """Dynamically returns all crops supported by the JalDrishti engine from memory cache."""
     crop_list = CropConfigService.get_all_crops()
-    return {"status": "success", "total_crops": len(crop_list), "crops": crop_list}
+    return CropListResponse(status="success", total_crops=len(crop_list), crops=crop_list)
 
-@router.post("/pest-advisory")
+@router.post("/pest-advisory", response_model=PestAdvisoryResponse)
 async def get_weather_pest_advisory(payload: PestAdvisoryRequest):
     """
     Evaluates weather-driven pest and disease risk index based on real-time micro-climate weather.

@@ -10,10 +10,15 @@ from app.schemas.user_schema import (
     TokenResponse, UserProfileSchema, ForgotPasswordRequest,
     ForgotPasswordResponse, ResetPasswordRequest,
     RequestPhoneUpdateOtpRequest, RequestPhoneUpdateOtpResponse,
-    VerifyPhoneUpdateOtpRequest
+    VerifyPhoneUpdateOtpRequest, RefreshTokenRequest
 )
-from app.core.security import get_password_hash, verify_password, create_access_token, get_current_user
+from app.core.security import (
+    get_password_hash, verify_password, create_access_token,
+    create_refresh_token, decode_token, revoke_token,
+    get_current_user, security_scheme, HTTPAuthorizationCredentials
+)
 from app.services.sms_service import SMSService
+from app.services.cache_service import CacheService
 
 router = APIRouter()
 
@@ -55,11 +60,13 @@ def register_user(payload: UserRegisterRequest, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(new_user)
 
-    # Generate JWT Token
+    # Generate JWT Access & Refresh Token Pair
     access_token = create_access_token(data={"sub": new_user.id})
+    refresh_token = create_refresh_token(user_id=new_user.id)
 
     return TokenResponse(
         access_token=access_token,
+        refresh_token=refresh_token,
         token_type="bearer",
         user=new_user
     )
@@ -81,12 +88,54 @@ def login_user(payload: UserLoginRequest, db: Session = Depends(get_db)):
         )
 
     access_token = create_access_token(data={"sub": user.id})
+    refresh_token = create_refresh_token(user_id=user.id)
 
     return TokenResponse(
         access_token=access_token,
+        refresh_token=refresh_token,
         token_type="bearer",
         user=user
     )
+
+
+@router.post("/refresh", response_model=TokenResponse)
+def refresh_access_token(payload: RefreshTokenRequest, db: Session = Depends(get_db)):
+    decoded = decode_token(payload.refresh_token)
+    if decoded.get("token_type") != "refresh":
+        raise HTTPException(status_code=401, detail="Invalid token type: Refresh token required")
+    
+    # Check Redis revocation
+    jti = decoded.get("jti")
+    if jti:
+        r = CacheService._get_redis()
+        if r and r.get(f"token_blacklist:{jti}"):
+            raise HTTPException(status_code=401, detail="Refresh token has been revoked. Please log in again.")
+    
+    user_id = int(decoded.get("sub"))
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user or not user.is_active:
+        raise HTTPException(status_code=401, detail="User not found or inactive")
+    
+    # Revoke old refresh token & issue new token pair
+    revoke_token(payload.refresh_token)
+    new_access = create_access_token(data={"sub": user.id})
+    new_refresh = create_refresh_token(user_id=user.id)
+    
+    return TokenResponse(
+        access_token=new_access,
+        refresh_token=new_refresh,
+        token_type="bearer",
+        user=user
+    )
+
+
+@router.post("/logout")
+def logout_user(
+    credentials: HTTPAuthorizationCredentials = Depends(security_scheme),
+    current_user: User = Depends(get_current_user)
+):
+    revoke_token(credentials.credentials)
+    return {"status": "success", "message": "Successfully logged out and token revoked."}
 
 
 @router.post("/forgot-password/request-otp", response_model=ForgotPasswordResponse)

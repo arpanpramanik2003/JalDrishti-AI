@@ -1,6 +1,6 @@
 from datetime import date
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 from app.db.database import get_db
 from app.models.user import User
@@ -12,10 +12,19 @@ router = APIRouter()
 
 @router.get("/", response_model=List[FarmPlotResponse])
 def get_user_farm_plots(
+    limit: int = Query(20, ge=1, le=100, description="Page size limit"),
+    offset: int = Query(0, ge=0, description="Page offset"),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    plots = db.query(FarmPlot).filter(FarmPlot.user_id == current_user.id).order_by(FarmPlot.is_primary.desc(), FarmPlot.id.asc()).all()
+    plots = (
+        db.query(FarmPlot)
+        .filter(FarmPlot.user_id == current_user.id)
+        .order_by(FarmPlot.is_primary.desc(), FarmPlot.id.asc())
+        .offset(offset)
+        .limit(limit)
+        .all()
+    )
     return plots
 
 
@@ -47,7 +56,8 @@ def create_farm_plot(
         pump_hp=payload.pump_hp if payload.pump_hp is not None else 5.0,
         pump_flow_lps=payload.pump_flow_lps if payload.pump_flow_lps is not None else 5.0,
         irrigation_method=payload.irrigation_method if payload.irrigation_method else "flood",
-        soil_type=payload.soil_type if payload.soil_type else "clay_loam"
+        soil_type=payload.soil_type if payload.soil_type else "clay_loam",
+        version=1
     )
     
     db.add(new_plot)
@@ -67,11 +77,23 @@ def update_farm_plot(
     if not plot:
         raise HTTPException(status_code=404, detail="Farm plot not found")
 
+    if payload.expected_version is not None:
+        if plot.version != payload.expected_version:
+            raise HTTPException(
+                status_code=409,
+                detail=f"Conflict: Farm plot was modified on another device (current version: {plot.version}, expected: {payload.expected_version}). Please refresh."
+            )
+
     if payload.is_primary:
         db.query(FarmPlot).filter(FarmPlot.user_id == current_user.id).update({"is_primary": False})
 
-    for key, val in payload.model_dump(exclude_unset=True).items():
+    update_data = payload.model_dump(exclude_unset=True)
+    update_data.pop("expected_version", None)
+
+    for key, val in update_data.items():
         setattr(plot, key, val)
+
+    plot.version += 1
 
     db.commit()
     db.refresh(plot)

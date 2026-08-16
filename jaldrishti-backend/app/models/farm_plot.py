@@ -23,6 +23,7 @@ class FarmPlot(Base):
     pump_flow_lps = Column(Float, nullable=False, default=5.0)
     irrigation_method = Column(String(30), nullable=False, default="flood") # "drip", "sprinkler", "flood"
     soil_type = Column(String(30), nullable=False, default="clay_loam") # "sandy_loam", "loam", "clay_loam", "silty_clay", "heavy_clay"
+    version = Column(Integer, default=1, nullable=False)
     
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

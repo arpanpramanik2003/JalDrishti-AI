@@ -3,7 +3,7 @@ import os
 import math
 from datetime import date, datetime
 from typing import List
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Query
 from sqlalchemy.orm import Session
 from app.db.database import get_db
 from app.models.user import User
@@ -70,6 +70,8 @@ def log_water_applied(
 @router.get("/history/{plot_id}", response_model=List[IrrigationLogResponse])
 def get_plot_irrigation_history(
     plot_id: int,
+    limit: int = Query(20, ge=1, le=100, description="Page size limit"),
+    offset: int = Query(0, ge=0, description="Page offset"),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -79,7 +81,14 @@ def get_plot_irrigation_history(
     if plot.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="You do not have permission to access or modify this farm plot")
 
-    logs = db.query(IrrigationLog).filter(IrrigationLog.farm_plot_id == plot_id).order_by(IrrigationLog.id.desc()).all()
+    logs = (
+        db.query(IrrigationLog)
+        .filter(IrrigationLog.farm_plot_id == plot_id)
+        .order_by(IrrigationLog.id.desc())
+        .offset(offset)
+        .limit(limit)
+        .all()
+    )
     return logs
 
 

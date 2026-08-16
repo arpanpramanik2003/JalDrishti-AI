@@ -17,6 +17,7 @@ class FarmPlotCreate(BaseModel):
     soil_type: Optional[str] = Field(default="clay_loam", max_length=30)
 
 class FarmPlotUpdate(BaseModel):
+    expected_version: Optional[int] = Field(default=None, description="Current version number for optimistic concurrency control")
     name: Optional[str] = Field(default=None, min_length=2, max_length=50)
     location_name: Optional[str] = Field(default=None, max_length=100)
     latitude: Optional[float] = Field(default=None, ge=-90.0, le=90.0)
@@ -47,4 +48,5 @@ class FarmPlotResponse(BaseModel):
     pump_flow_lps: float = 5.0
     irrigation_method: str = "flood"
     soil_type: str = "clay_loam"
+    version: int = 1
     created_at: datetime
