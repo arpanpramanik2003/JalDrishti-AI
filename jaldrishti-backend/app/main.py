@@ -54,13 +54,13 @@ try:
 except Exception as scheduler_err:
     print(f"[Scheduler Notice] {scheduler_err}")
 
-# Rate Limiting Middleware (10 requests per minute on login/register to prevent brute force)
-app.add_middleware(RateLimiterMiddleware, max_requests=10, window_seconds=60)
+# Multi-tier Redis-Backed Rate Limiting Middleware
+app.add_middleware(RateLimiterMiddleware)
 
-# Enable CORS
+# Enable CORS with explicit allowed client origins
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=settings.ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

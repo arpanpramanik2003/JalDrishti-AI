@@ -1,34 +1,91 @@
 import time
+import logging
 from collections import defaultdict
 from fastapi import Request
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
+from app.services.cache_service import CacheService
+
+logger = logging.getLogger("jaldrishti.rate_limiter")
+
 
 class RateLimiterMiddleware(BaseHTTPMiddleware):
-    def __init__(self, app, max_requests: int = 30, window_seconds: int = 60):
+    """
+    Multi-tier Distributed Rate Limiting Middleware.
+    Enforces per-route quotas backed by Redis with process-memory fallback.
+    """
+
+    def __init__(self, app):
         super().__init__(app)
-        self.max_requests = max_requests
-        self.window_seconds = window_seconds
-        self.request_history = defaultdict(list)
+        self.memory_history = defaultdict(list)
+
+    def _get_route_limit(self, path: str) -> tuple[str, int, int]:
+        """
+        Returns (category_name, max_requests, window_seconds) for a given endpoint path.
+        """
+        # Strict protection for LLM Chatbot endpoint
+        if path.endswith("/chatbot/query"):
+            return ("chatbot", 5, 60)
+
+        # Auth & sensitive endpoints
+        if "/auth/" in path:
+            return ("auth", 10, 60)
+
+        # External API calculation endpoints
+        if "/irrigation/recommendation" in path or "/crops/pest-advisory" in path:
+            return ("external_calc", 15, 60)
+
+        # Default general API endpoints
+        if path.startswith("/api/") or path.startswith("/plots"):
+            return ("general_api", 60, 60)
+
+        # Exempt health check & OpenAPI docs
+        return ("exempt", 1000, 60)
 
     async def dispatch(self, request: Request, call_next):
-        # Rate limit only sensitive authentication endpoints
         path = request.url.path
-        if path.endswith("/auth/login") or path.endswith("/auth/register"):
-            client_ip = request.client.host if request.client else "127.0.0.1"
-            now = time.time()
-            
-            # Clean history older than window
-            history = [t for t in self.request_history[client_ip] if now - t < self.window_seconds]
-            self.request_history[client_ip] = history
+        category, max_requests, window_seconds = self._get_route_limit(path)
 
-            if len(history) >= self.max_requests:
-                return JSONResponse(
-                    status_code=429,
-                    content={"detail": "Too many authentication attempts. Please wait 1 minute before retrying."}
-                )
-            
-            self.request_history[client_ip].append(now)
+        if category == "exempt":
+            return await call_next(request)
+
+        client_ip = request.client.host if request.client else "127.0.0.1"
+        key = f"rate_limit:{category}:{client_ip}"
+        
+        # 1. Try Redis Rate Limiting
+        r = CacheService._get_redis()
+        is_rate_limited = False
+
+        if r:
+            try:
+                current_count = r.incr(key)
+                if current_count == 1:
+                    r.expire(key, window_seconds)
+                if current_count > max_requests:
+                    is_rate_limited = True
+            except Exception as e:
+                logger.warning(f"[RateLimiter] Redis error ({e}), falling back to memory rate limiting.")
+                r = None
+
+        # 2. Fallback to Process Memory Rate Limiting if Redis unavailable
+        if not r:
+            now = time.time()
+            mem_key = f"{category}:{client_ip}"
+            history = [t for t in self.memory_history[mem_key] if now - t < window_seconds]
+            self.memory_history[mem_key] = history
+
+            if len(history) >= max_requests:
+                is_rate_limited = True
+            else:
+                self.memory_history[mem_key].append(now)
+
+        if is_rate_limited:
+            return JSONResponse(
+                status_code=429,
+                content={
+                    "detail": f"Rate limit exceeded for endpoint category '{category}'. Maximum {max_requests} requests per {window_seconds} seconds allowed."
+                }
+            )
 
         response = await call_next(request)
         return response

@@ -1,6 +1,8 @@
 from typing import Optional
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
+from app.models.user import User
+from app.core.security import get_current_user
 from app.services.rag_service import RAGService
 from app.services.weather_service import WeatherService
 
@@ -32,8 +34,19 @@ class ChatResponse(BaseModel):
     response: str
 
 @router.post("/query", response_model=ChatResponse)
-async def ask_agri_bot(payload: ChatRequest):
+async def ask_agri_bot(
+    payload: ChatRequest,
+    current_user: User = Depends(get_current_user)
+):
     rag = get_rag_service()
+
+    # Determine farmer display name from profile if not provided in payload
+    farmer_name = payload.farmer_name
+    if not farmer_name:
+        if current_user.profile and current_user.profile.first_name:
+            farmer_name = current_user.profile.first_name
+        else:
+            farmer_name = current_user.username
 
     # Fetch live satellite weather forecast telemetry for farmer's location
     weather_data = None
@@ -48,7 +61,7 @@ async def ask_agri_bot(payload: ChatRequest):
     answer = await rag.answer_farmer_query_async(
         query=payload.query,
         language=payload.language,
-        farmer_name=payload.farmer_name,
+        farmer_name=farmer_name,
         location_name=payload.location_name,
         current_crop=payload.current_crop,
         farm_area_acres=payload.farm_area_acres,

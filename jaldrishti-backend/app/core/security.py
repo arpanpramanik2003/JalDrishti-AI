@@ -8,8 +8,15 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from app.db.database import get_db
 from app.models.user import User
+from app.core.config import settings
 
-SECRET_KEY = os.getenv("JWT_SECRET_KEY", "jaldrishti_saas_super_secret_jwt_key_2026_prod")
+SECRET_KEY = settings.JWT_SECRET_KEY or os.getenv("JWT_SECRET_KEY", "")
+if not SECRET_KEY:
+    raise ValueError(
+        "CRITICAL SECURITY ERROR: JWT_SECRET_KEY environment variable is not set! "
+        "The application cannot start without a secure secret key."
+    )
+
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_DAYS = 30
 
