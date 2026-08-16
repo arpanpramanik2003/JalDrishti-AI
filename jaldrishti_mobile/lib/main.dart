@@ -12,12 +12,14 @@ import 'screens/login_screen.dart';
 import 'core/constants/api_constants.dart';
 import 'core/services/fcm_service.dart';
 
+import 'package:google_fonts/google_fonts.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'core/services/offline_cache_service.dart';
 import 'core/services/offline_sync_manager.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  GoogleFonts.config.allowRuntimeFetching = false;
   await Hive.initFlutter();
   await Hive.openBox(OfflineCacheService.cacheBoxName);
   await Hive.openBox(OfflineSyncManager.syncQueueBoxName);

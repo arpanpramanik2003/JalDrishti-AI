@@ -32,35 +32,65 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   int _selectedTab = 0; // 0: Weather Stats, 1: Daily Trend, 2: Smart Insights, 3: Water Balance, 4: History Logs
   List<dynamic> _historyLogs = [];
   bool _isLoadingHistory = false;
+  int _historyOffset = 0;
+  final int _historyLimit = 20;
+  bool _hasMoreLogs = true;
+  bool _isFetchingMoreLogs = false;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _fetchHistoryLogs();
+      _fetchHistoryLogs(reset: true);
     });
   }
 
-  Future<void> _fetchHistoryLogs() async {
+  Future<void> _fetchHistoryLogs({bool reset = true}) async {
     final auth = Provider.of<AuthProvider>(context, listen: false);
     final farmPlotProvider = Provider.of<FarmPlotProvider>(context, listen: false);
     final selectedPlot = farmPlotProvider.selectedPlot;
     if (selectedPlot == null || auth.token == null) return;
 
-    setState(() => _isLoadingHistory = true);
+    if (reset) {
+      _historyOffset = 0;
+      _hasMoreLogs = true;
+      setState(() => _isLoadingHistory = true);
+    } else {
+      if (!_hasMoreLogs || _isFetchingMoreLogs) return;
+      setState(() => _isFetchingMoreLogs = true);
+    }
+
     try {
       final logs = await ApiService.fetchIrrigationHistory(
         plotId: selectedPlot.id,
         token: auth.token!,
+        limit: _historyLimit,
+        offset: _historyOffset,
       );
+
       if (mounted) {
         setState(() {
-          _historyLogs = logs;
+          if (reset) {
+            _historyLogs = logs;
+          } else {
+            _historyLogs.addAll(logs);
+          }
+          if (logs.length < _historyLimit) {
+            _hasMoreLogs = false;
+          } else {
+            _historyOffset += logs.length;
+          }
           _isLoadingHistory = false;
+          _isFetchingMoreLogs = false;
         });
       }
     } catch (_) {
-      if (mounted) setState(() => _isLoadingHistory = false);
+      if (mounted) {
+        setState(() {
+          _isLoadingHistory = false;
+          _isFetchingMoreLogs = false;
+        });
+      }
     }
   }
 
