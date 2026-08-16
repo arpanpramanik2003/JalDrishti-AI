@@ -23,12 +23,15 @@ class AppTheme {
         ),
         iconTheme: const IconThemeData(color: Color(0xFF38BDF8)),
       ),
-      textTheme: GoogleFonts.plusJakartaSansTextTheme(ThemeData.dark().textTheme),
+      textTheme: GoogleFonts.plusJakartaSansTextTheme(ThemeData.dark().textTheme).copyWith(
+        bodyMedium: const TextStyle(color: Color(0xFFE2E8F0), fontSize: 14),
+        bodySmall: const TextStyle(color: Color(0xFFCBD5E1), fontSize: 13),
+      ),
       dividerColor: const Color(0xFF334155),
     );
   }
 
-  // ── Light Theme (Clean Fresh Agriculture Palette)
+  // ── Light Theme (High Contrast Outdoor Agriculture Palette)
   static ThemeData get lightTheme {
     return ThemeData(
       useMaterial3: true,
@@ -49,7 +52,10 @@ class AppTheme {
         ),
         iconTheme: const IconThemeData(color: Color(0xFF0284C7)),
       ),
-      textTheme: GoogleFonts.plusJakartaSansTextTheme(ThemeData.light().textTheme),
+      textTheme: GoogleFonts.plusJakartaSansTextTheme(ThemeData.light().textTheme).copyWith(
+        bodyMedium: const TextStyle(color: Color(0xFF1E293B), fontSize: 14),
+        bodySmall: const TextStyle(color: Color(0xFF334155), fontSize: 13),
+      ),
       dividerColor: const Color(0xFFE2E8F0),
     );
   }

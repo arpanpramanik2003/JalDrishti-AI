@@ -1,0 +1,17 @@
+{
+  "@@locale": "bn",
+  "appTitle": "জলদৃষ্টি এআই",
+  "aiKishanMitra": "জলদৃষ্টি এআই কিষাণ-মিত্র",
+  "welcomeFarmer": "স্বাগতম, কৃষক ভাই",
+  "typeOrSpeakQuery": "আপনার কৃষিসংক্রান্ত প্রশ্ন লিখুন বা বলুন...",
+  "selectLanguage": "ভাষা",
+  "english": "ইংরেজি",
+  "bengali": "বাংলা",
+  "hindi": "হিন্দি",
+  "farmPlotName": "জমি বা প্লটের নাম",
+  "sowingDate": "বীজ রোপণের তারিখ",
+  "savePlot": "প্লট সংরক্ষণ করুন",
+  "cancel": "বাতিল",
+  "irrigationRecommendation": "সেচ সুপারিশ",
+  "pestAdvisory": "পোকা ও রোগ পরামর্শ"
+}

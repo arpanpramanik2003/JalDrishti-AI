@@ -1,0 +1,17 @@
+{
+  "@@locale": "en",
+  "appTitle": "JalDrishti AI",
+  "aiKishanMitra": "JalDrishti AI Kishan-Mitra",
+  "welcomeFarmer": "Welcome, Farmer",
+  "typeOrSpeakQuery": "Type or speak your agricultural question...",
+  "selectLanguage": "Language",
+  "english": "English",
+  "bengali": "Bengali",
+  "hindi": "Hindi",
+  "farmPlotName": "Farm Plot Name",
+  "sowingDate": "Sowing Date",
+  "savePlot": "Save Plot",
+  "cancel": "Cancel",
+  "irrigationRecommendation": "Irrigation Recommendation",
+  "pestAdvisory": "Pest & Disease Advisory"
+}

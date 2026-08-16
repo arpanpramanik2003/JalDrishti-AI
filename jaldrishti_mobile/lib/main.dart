@@ -43,6 +43,8 @@ void main() async {
   );
 }
 
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
 class JalDrishtiApp extends StatelessWidget {
   const JalDrishtiApp({super.key});
 
@@ -51,6 +53,7 @@ class JalDrishtiApp extends StatelessWidget {
     final themeProvider = Provider.of<ThemeProvider>(context);
 
     return MaterialApp(
+      navigatorKey: navigatorKey,
       title: 'JalDrishti AI',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,

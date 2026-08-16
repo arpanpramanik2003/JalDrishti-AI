@@ -1,5 +1,9 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import '../../main.dart';
+import '../../screens/pest_advisory_screen.dart';
+import '../../screens/analytics_screen.dart';
 
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
@@ -21,10 +25,27 @@ class NotificationService {
     );
 
     try {
+
       await _notificationsPlugin.initialize(
         initSettings,
         onDidReceiveNotificationResponse: (NotificationResponse response) {
           debugPrint('Notification clicked: ${response.payload}');
+          if (response.payload != null && response.payload!.isNotEmpty) {
+            try {
+              final data = jsonDecode(response.payload!);
+              final type = data['type']?.toString().toLowerCase();
+              final navState = navigatorKey.currentState;
+              if (navState != null) {
+                if (type == 'weather' || type == 'pest') {
+                  navState.push(MaterialPageRoute(builder: (_) => const PestAdvisoryScreen()));
+                } else if (type == 'irrigation') {
+                  navState.push(MaterialPageRoute(builder: (_) => const AnalyticsScreen()));
+                }
+              }
+            } catch (e) {
+              debugPrint('Error handling notification tap navigation: $e');
+            }
+          }
         },
       );
 

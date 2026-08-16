@@ -1,0 +1,17 @@
+{
+  "@@locale": "hi",
+  "appTitle": "जलदृष्टि एआई",
+  "aiKishanMitra": "जलदृष्टि एआई किसान-मित्र",
+  "welcomeFarmer": "स्वागत है, किसान भाई",
+  "typeOrSpeakQuery": "अपना कृषि संबंधी प्रश्न लिखें या बोलें...",
+  "selectLanguage": "भाषा",
+  "english": "अंग्रेज़ी",
+  "bengali": "बंगाली",
+  "hindi": "हिंदी",
+  "farmPlotName": "खेत का नाम",
+  "sowingDate": "बुआई की तारीख",
+  "savePlot": "खेत सहेजें",
+  "cancel": "रद्द करें",
+  "irrigationRecommendation": "सिंचाई की सलाह",
+  "pestAdvisory": "कीट और रोग संबंधी सलाह"
+}
