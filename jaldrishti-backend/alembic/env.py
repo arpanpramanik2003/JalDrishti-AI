@@ -16,6 +16,8 @@ from app.core.config import settings
 from app.db.database import Base
 import app.models.user
 import app.models.farm_plot
+import app.models.chat_history
+import app.models.document_embedding
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

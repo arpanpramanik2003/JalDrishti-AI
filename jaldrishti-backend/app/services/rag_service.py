@@ -1,202 +1,293 @@
 import os
 import re
-import math
+import json
+import uuid
+import logging
 from datetime import datetime, timedelta
 from typing import Optional, List, Dict, Any
+from pydantic import BaseModel, Field
 from groq import AsyncGroq
 from app.core.config import settings
+from app.db.database import SessionLocal
+from app.models.chat_history import ChatConversation, ChatMessage
+from app.services.cache_service import CacheService
+from app.services.vector_search_service import VectorSearchService
 
-class LightweightDocSearch:
-    """
-    Ultra-lightweight, zero-dependency BM25/TF-IDF Document Ranker for Agricultural PoP text files.
-    Uses 0 MB extra RAM and requires no PyTorch/ChromaDB/LangChain binaries.
-    """
-    def __init__(self, docs_dir: str):
-        self.docs_dir = docs_dir
-        self.chunks: List[Dict[str, Any]] = []
-        self._load_and_index_docs()
+logger = logging.getLogger("jaldrishti.rag")
 
-    def _tokenize(self, text: str) -> List[str]:
-        return [w.lower() for w in re.findall(r'\w+', text) if len(w) > 2]
 
-    def _load_and_index_docs(self):
-        if not os.path.exists(self.docs_dir):
-            print(f"[Warning] POP docs directory missing: {self.docs_dir}")
-            return
+class StructuredDualSolution(BaseModel):
+    chemical_treatment: Optional[str] = Field(default=None, description="Exact chemical treatment and dosage per acre")
+    organic_alternative: Optional[str] = Field(default=None, description="Natural or bio-organic treatment alternative")
+    preventative_cultural_tip: Optional[str] = Field(default=None, description="Preventative cultural or field management tip")
 
-        for fname in os.listdir(self.docs_dir):
-            if fname.endswith(".txt"):
-                fpath = os.path.join(self.docs_dir, fname)
-                try:
-                    with open(fpath, "r", encoding="utf-8") as f:
-                        content = f.read()
-                        paras = [p.strip() for p in content.split("\n\n") if len(p.strip()) > 40]
-                        for p in paras:
-                            self.chunks.append({
-                                "text": p,
-                                "tokens": set(self._tokenize(p))
-                            })
-                except Exception as e:
-                    print(f"[Warning] Failed reading doc {fname}: {e}")
 
-        print(f"[Info] Lightweight RAG indexed {len(self.chunks)} agricultural document chunks.")
-
-    def search(self, query: str, top_k: int = 3) -> str:
-        query_tokens = set(self._tokenize(query))
-        if not query_tokens:
-            return ""
-
-        scored_chunks = []
-        for chunk in self.chunks:
-            overlap = len(query_tokens.intersection(chunk["tokens"]))
-            if overlap > 0:
-                score = overlap / (math.log(len(chunk["tokens"]) + 1) + 1.0)
-                scored_chunks.append((score, chunk["text"]))
-
-        scored_chunks.sort(key=lambda x: x[0], reverse=True)
-        top_texts = [item[1] for item in scored_chunks[:top_k]]
-        return "\n\n".join(top_texts)
+class ChatbotAnalysisResponse(BaseModel):
+    reply_text: str = Field(..., description="Main advisory reply in requested target language and script")
+    weather_alert: Optional[str] = Field(default=None, description="Live weather alert if rain/heat wave expected")
+    solution: Optional[StructuredDualSolution] = Field(default=None, description="Dual treatment solution if query asks about disease/pest/fertilizer")
 
 
 class RAGService:
     """
-    Ultra-Fast, Low-Memory Agronomy Companion powered directly by Groq Llama-3.3-70B.
-    Memory Footprint: < 5 MB RAM (vs 550+ MB for PyTorch/ChromaDB).
+    Production-Grade Multilingual Agronomy RAG Engine powered by Groq Llama-3.3-70B
+    with Vector Embeddings, Session History, and Structured Output.
     """
+    WEATHER_KEYWORDS = {
+        "weather", "rain", "temperature", "forecast", "humidity", "monsoon", "storm", "sun", "hot", "dry",
+        "বৃষ্টি", "আবহাওয়া", "তাপমাত্রা", "ঝড়", "মেঘ", "জল", "সেচ",
+        "मौसम", "बारिश", "तापमान", "आंधी", "सिंचाई", "पानी",
+        "irrigate", "irrigation", "spray", "spraying"
+    }
+
     def __init__(self):
         self.docs_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', 'pop_docs'))
-        self.doc_search = LightweightDocSearch(self.docs_dir)
+        
+        # Initialize vector store embeddings if not already populated
+        try:
+            VectorSearchService.initialize_and_index_docs(self.docs_dir)
+        except Exception as e:
+            logger.warning(f"[RAGService] Vector search initialization notice: {e}")
         
         self.client: Optional[AsyncGroq] = None
         if settings.GROQ_API_KEY and settings.GROQ_API_KEY != "your_groq_api_key_here":
             try:
                 self.client = AsyncGroq(api_key=settings.GROQ_API_KEY)
-                print("[Info] AsyncGroq client initialized successfully!")
+                logger.info("[RAGService] AsyncGroq client initialized successfully!")
             except Exception as e:
-                print(f"[Warning] Failed to initialize AsyncGroq client: {e}")
+                logger.warning(f"[RAGService] Failed to initialize AsyncGroq client: {e}")
+
+    def _is_weather_relevant(self, query: str) -> bool:
+        q_lower = query.lower()
+        return any(kw in q_lower for kw in self.WEATHER_KEYWORDS)
+
+    def _get_or_create_session(self, session_id: Optional[str], user_id: int, db) -> tuple[str, ChatConversation]:
+        if not session_id:
+            session_id = f"sess_{uuid.uuid4().hex[:16]}"
+
+        conversation = db.query(ChatConversation).filter(
+            ChatConversation.session_id == session_id,
+            ChatConversation.user_id == user_id
+        ).first()
+
+        if not conversation:
+            conversation = ChatConversation(session_id=session_id, user_id=user_id)
+            db.add(conversation)
+            db.commit()
+            db.refresh(conversation)
+
+        return session_id, conversation
+
+    def _load_chat_history(self, session_id: str, conversation_id: int, db) -> List[Dict[str, str]]:
+        # 1. Try Redis cache first
+        cache_key = f"chat_history:{session_id}"
+        cached = CacheService.get(cache_key)
+        if cached and isinstance(cached, list):
+            return cached
+
+        # 2. Database fallback
+        msgs = db.query(ChatMessage).filter(
+            ChatMessage.conversation_id == conversation_id
+        ).order_by(ChatMessage.created_at.desc()).limit(6).all()
+
+        msgs.reverse()
+        formatted = [{"role": m.role, "content": m.content} for m in msgs]
+        
+        if formatted:
+            CacheService.set(cache_key, formatted, expire_seconds=86400)
+        return formatted
+
+    def _save_chat_turn(self, session_id: str, conversation_id: int, user_query: str, assistant_reply: str, db):
+        # Save to DB
+        msg_user = ChatMessage(conversation_id=conversation_id, role="user", content=user_query)
+        msg_bot = ChatMessage(conversation_id=conversation_id, role="assistant", content=assistant_reply)
+        db.add_all([msg_user, msg_bot])
+        db.commit()
+
+        # Update Redis cache
+        history = self._load_chat_history(session_id, conversation_id, db)
+        history.extend([
+            {"role": "user", "content": user_query},
+            {"role": "assistant", "content": assistant_reply}
+        ])
+        # Keep last 6 messages
+        history = history[-6:]
+        CacheService.set(f"chat_history:{session_id}", history, expire_seconds=86400)
 
     async def answer_farmer_query_async(
         self,
         query: str,
+        user_id: int,
+        session_id: Optional[str] = None,
         language: str = "English",
         farmer_name: Optional[str] = None,
         location_name: Optional[str] = None,
         current_crop: Optional[str] = None,
         farm_area_acres: Optional[float] = None,
         weather_data: Optional[dict] = None
-    ) -> str:
-        """Async Non-Blocking Personalized Agronomy Companion with Live Satellite Weather Context."""
-        
+    ) -> Dict[str, Any]:
+        """
+        Async Non-Blocking Personalized Agronomy Companion with Vector Retrieval,
+        Multi-turn Session Memory, and Pydantic-Validated Structured Output.
+        """
         clean_q = query.strip().lower()
         farmer_name_greet = farmer_name if farmer_name else "Farmer"
 
-        # Check for gratitude/closure phrases
-        gratitude_phrases = ["thanks", "thank you", "ok thanks", "no thanks", "dhanyabad", "dhanyavaad", "ok ok", "bye", "goodbye"]
-        if any(phrase in clean_q for phrase in gratitude_phrases):
-            return (
-                f"You're very welcome, **{farmer_name_greet}**! 🌾\n\n"
-                f"Wishing you a healthy and prosperous harvest. Feel free to reach out anytime if you have more questions about your fields!"
-            )
-
-        # Build Context Summary for Prompt
-        farmer_ctx_parts = []
-        if farmer_name:
-            farmer_ctx_parts.append(f"Farmer Name: {farmer_name}")
-        if location_name:
-            farmer_ctx_parts.append(f"Location: {location_name}")
-        if current_crop:
-            farmer_ctx_parts.append(f"Active Crop: {current_crop}")
-        if farm_area_acres:
-            farmer_ctx_parts.append(f"Farm Area: {farm_area_acres} Acres")
-            
-        farmer_context_str = ", ".join(farmer_ctx_parts) if farmer_ctx_parts else "General Farmer"
-
-        # Process Live Weather & 7-Day Forecast Telemetry
-        weather_context_str = "No live weather telemetry available."
-        if weather_data and "daily_weather" in weather_data:
-            today_str = datetime.now().strftime("%Y-%m-%d")
-            tomorrow_str = (datetime.now() + timedelta(days=1)).strftime("%Y-%m-%d")
-            daily = weather_data["daily_weather"]
-            lines = []
-            for date_key, metrics in daily.items():
-                max_t = metrics.get("temp_max_c", 0.0)
-                min_t = metrics.get("temp_min_c", 0.0)
-                hum = metrics.get("humidity_percent", 0.0)
-                rain = metrics.get("precipitation_mm", 0.0)
-                wind_ms = metrics.get("wind_speed_m_s", 0.0)
-                wind_kmh = wind_ms * 3.6
-                
-                day_tag = ""
-                if date_key == today_str:
-                    day_tag = " [TODAY / আজ / आज]"
-                elif date_key == tomorrow_str:
-                    day_tag = " [TOMORROW / আগামী কাল / कल]"
-                    
-                rain_text = f"🌧️ RAIN EXPECTED ({rain:.1f} mm)" if rain >= 1.5 else f"☀️ Clear/Dry ({rain:.1f} mm rain)"
-                
-                lines.append(
-                    f"- Date {date_key}{day_tag}: Max Temp {max_t:.1f}°C, Min Temp {min_t:.1f}°C, "
-                    f"Humidity {hum:.0f}%, Wind Speed {wind_kmh:.1f} km/h, {rain_text}"
-                )
-            weather_context_str = "\n".join(lines)
-
-        # Retrieve relevant localized document context
-        context_text = self.doc_search.search(query, top_k=3)
-
-        # Warm, Smart Agronomic Companion System Prompt
-        system_prompt = (
-            "You are JalSathi AI (জলসাথী AI) 🌾, an expert, warm, and highly practical Agronomy Assistant for Indian farmers.\n\n"
-            f"FARMER PROFILE:\n{farmer_context_str}\n\n"
-            f"LIVE REAL-TIME SATELLITE WEATHER TELEMETRY & FORECAST (Open-Meteo Data):\n{weather_context_str}\n\n"
-            "STRICT MULTILINGUAL & WEATHER RULES:\n"
-            f"1. LANGUAGE SCRIPT: Respond ENTIRELY in the requested target language ({language}).\n"
-            "   - If Language is 'Bengali', respond ONLY in fluent, natural Bengali script (বাংলা).\n"
-            "   - If Language is 'Hindi', respond ONLY in fluent, natural Hindi Devanagari script (हिंदी).\n"
-            "   - If Language is 'English', respond in clear English.\n"
-            "2. TODAY'S & TOMORROW'S WEATHER INQUIRIES:\n"
-            "   - When the farmer asks about today's weather, tomorrow's weather, or rain forecast (e.g. 'will it rain tomorrow?', 'today weather', 'কাল বৃষ্টি হবে?'):\n"
-            "     * Quote exact dates, Max/Min Temperatures (°C), Relative Humidity (%), and Rain Forecast (mm) from the LIVE WEATHER TELEMETRY above.\n"
-            "     * If rain is expected (>= 1.5 mm), explicitly alert the farmer and advise them to PAUSE or DELAY irrigation to save water and pump electricity!\n"
-            "     * If no rain is expected, provide clear weather parameters and state that field conditions are dry.\n"
-            "3. GRATITUDE & CLOSURE: If the farmer says thanks, dhanyabad, dhanyavaad, or goodbye, give a warm, polite closing wish for a bountiful harvest. DO NOT ask robotic follow-up questions.\n"
-            "4. STRUCTURED DUAL SOLUTION (Chemical & Bio-Organic):\n"
-            "   - When answering crop disease, pest, or fertilizer questions, ALWAYS provide:\n"
-            "     * 🧪 **Chemical Treatment**: Exact chemical name and dosage per acre (e.g. Cartap 4G @ 10 kg/acre, Mancozeb @ 2.5 g/L).\n"
-            "     * 🌿 **Organic / Bio-Alternative**: Natural treatment (e.g. Neem Oil 10,000 ppm, Pseudomonas fluorescens, Trichoderma viride).\n"
-            "     * 💡 **Preventive Cultural Tip**: Field drainage, crop rotation, or earthing up advice.\n"
-            "5. UNITS: Use Indian agricultural units (Acres, Bigha, kg, g, Liters, mL).\n\n"
-            f"AGRICULTURAL KNOWLEDGE BASE (Package of Practices):\n{context_text if context_text else 'No localized document context matched.'}\n"
-        )
-
-        if not self.client:
-            return (
-                f"🌾 **Advisory for {query}**\n\n"
-                f"• **Active Crop**: {current_crop if current_crop else 'Paddy Rice'}\n"
-                f"• **Recommended Action**: Monitor soil moisture using the JalDrishti dashboard.\n"
-                f"• **Tip**: Apply **recommended N-P-K dosages** according to crop growth stage."
-            )
-
+        db = SessionLocal()
         try:
+            active_session_id, conversation = self._get_or_create_session(session_id, user_id, db)
+
+            # Check gratitude/closure
+            gratitude_phrases = ["thanks", "thank you", "ok thanks", "no thanks", "dhanyabad", "dhanyavaad", "bye", "goodbye"]
+            if any(phrase in clean_q for phrase in gratitude_phrases):
+                reply = (
+                    f"You're very welcome, **{farmer_name_greet}**! 🌾\n\n"
+                    f"Wishing you a healthy and prosperous harvest. Feel free to reach out anytime if you have more questions about your fields!"
+                )
+                self._save_chat_turn(active_session_id, conversation.id, query, reply, db)
+                return {
+                    "session_id": active_session_id,
+                    "response": reply,
+                    "structured_analysis": None
+                }
+
+            # 1. Build Farmer Profile Context
+            farmer_ctx_parts = []
+            if farmer_name:
+                farmer_ctx_parts.append(f"Farmer Name: {farmer_name}")
+            if location_name:
+                farmer_ctx_parts.append(f"Location: {location_name}")
+            if current_crop:
+                farmer_ctx_parts.append(f"Active Crop: {current_crop}")
+            if farm_area_acres:
+                farmer_ctx_parts.append(f"Farm Area: {farm_area_acres} Acres")
+            farmer_context_str = ", ".join(farmer_ctx_parts) if farmer_ctx_parts else "General Farmer"
+
+            # 2. Weather Context Relevance Filtering
+            weather_context_str = "No weather forecast requested for this query type."
+            if self._is_weather_relevant(clean_q) and weather_data and "daily_weather" in weather_data:
+                today_str = datetime.now().strftime("%Y-%m-%d")
+                tomorrow_str = (datetime.now() + timedelta(days=1)).strftime("%Y-%m-%d")
+                daily = weather_data["daily_weather"]
+                lines = []
+                for date_key, metrics in daily.items():
+                    max_t = metrics.get("temp_max_c", 0.0)
+                    min_t = metrics.get("temp_min_c", 0.0)
+                    hum = metrics.get("humidity_percent", 0.0)
+                    rain = metrics.get("precipitation_mm", 0.0)
+                    wind_kmh = metrics.get("wind_speed_m_s", 0.0) * 3.6
+                    
+                    day_tag = " [TODAY]" if date_key == today_str else (" [TOMORROW]" if date_key == tomorrow_str else "")
+                    rain_text = f"🌧️ RAIN EXPECTED ({rain:.1f} mm)" if rain >= 1.5 else f"☀️ Dry ({rain:.1f} mm)"
+                    lines.append(f"- {date_key}{day_tag}: Max {max_t:.1f}°C, Min {min_t:.1f}°C, Hum {hum:.0f}%, Wind {wind_kmh:.1f} km/h, {rain_text}")
+                weather_context_str = "\n".join(lines)
+
+            # 3. Dense Vector Semantic Retrieval
+            semantic_chunks = VectorSearchService.search_semantic_chunks(query, top_k=3, db=db)
+            if semantic_chunks:
+                context_text = "\n\n".join([f"[{c['doc_name']}] {c['content']}" for c in semantic_chunks])
+            else:
+                context_text = "No localized Package of Practices document context matched."
+
+            # 4. Multi-Turn Session History
+            past_turns = self._load_chat_history(active_session_id, conversation.id, db)
+
+            # 5. System Prompt with Structured Output Request
+            system_prompt = (
+                "You are JalSathi AI (জলসাথী AI) 🌾, an expert, warm Agronomy Assistant for Indian farmers.\n\n"
+                f"FARMER PROFILE:\n{farmer_context_str}\n\n"
+                f"LIVE WEATHER FORECAST (INJECTED ONLY IF WEATHER-RELEVANT):\n{weather_context_str}\n\n"
+                f"SEMANTIC KNOWLEDGE BASE (Package of Practices):\n{context_text}\n\n"
+                "STRICT RESPONSE INSTRUCTIONS:\n"
+                f"1. LANGUAGE SCRIPT: Respond ENTIRELY in target language ({language}).\n"
+                "   - Bengali: Respond ONLY in natural Bengali script (বাংলা).\n"
+                "   - Hindi: Respond ONLY in Hindi Devanagari script (हिंदी).\n"
+                "   - English: Respond in clear English.\n"
+                "2. OUTPUT FORMAT: You MUST return a JSON object matching this schema:\n"
+                "   {\n"
+                '     "reply_text": "Comprehensive, clear response in farmer\'s script",\n'
+                '     "weather_alert": "Optional weather warning string or null",\n'
+                '     "solution": {\n'
+                '        "chemical_treatment": "Exact chemical dosage per acre (e.g. Cartap 4G @ 10 kg/acre)",\n'
+                '        "organic_alternative": "Natural bio-organic alternative (e.g. Neem Oil 10,000 ppm)",\n'
+                '        "preventative_cultural_tip": "Field management or drainage tip"\n'
+                "     }\n"
+                "   }\n"
+            )
+
+            if not self.client:
+                fallback_reply = (
+                    f"🌾 **Advisory for {query}**\n\n"
+                    f"• **Active Crop**: {current_crop if current_crop else 'Paddy Rice'}\n"
+                    f"• **Recommended Action**: Monitor soil moisture using the JalDrishti dashboard.\n"
+                    f"• **Tip**: Apply recommended fertilizer dosages according to crop growth stage."
+                )
+                self._save_chat_turn(active_session_id, conversation.id, query, fallback_reply, db)
+                return {
+                    "session_id": active_session_id,
+                    "response": fallback_reply,
+                    "structured_analysis": None
+                }
+
+            # Build LLM Messages array
+            messages = [{"role": "system", "content": system_prompt}]
+            for turn in past_turns:
+                messages.append({"role": turn["role"], "content": turn["content"]})
+            messages.append({"role": "user", "content": query})
+
             response = await self.client.chat.completions.create(
                 model=settings.GROQ_MODEL_NAME,
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": query}
-                ],
+                messages=messages,
+                response_format={"type": "json_object"},
                 temperature=0.3,
-                max_tokens=800
-            )
-            return response.choices[0].message.content
-        except Exception as e:
-            print(f"[Error in Groq API call]: {e}")
-            return (
-                f"🌾 **Advisory for {query}**:\n\n"
-                f"• Keep soil at healthy field capacity.\n"
-                f"• Check the JalDrishti Dashboard for real-time FAO-56 irrigation recommendations.\n"
-                f"• Apply standard **recommended fertilizer dosages** according to growth stage."
+                max_tokens=1000
             )
 
-    def answer_farmer_query(self, *args, **kwargs) -> str:
+            raw_json = response.choices[0].message.content
+            parsed_resp = json.loads(raw_json)
+
+            reply_text = parsed_resp.get("reply_text", "")
+            if not reply_text:
+                reply_text = str(parsed_resp)
+
+            # Append formatted structured solution to reply_text if present for rich display
+            sol = parsed_resp.get("solution")
+            if sol and isinstance(sol, dict):
+                chem = sol.get("chemical_treatment")
+                org = sol.get("organic_alternative")
+                prev = sol.get("preventative_cultural_tip")
+
+                additions = []
+                if chem:
+                    additions.append(f"🧪 **Chemical Treatment**: {chem}")
+                if org:
+                    additions.append(f"🌿 **Organic / Bio-Alternative**: {org}")
+                if prev:
+                    additions.append(f"💡 **Preventative Cultural Tip**: {prev}")
+
+                if additions:
+                    reply_text += "\n\n" + "\n\n".join(additions)
+
+            self._save_chat_turn(active_session_id, conversation.id, query, reply_text, db)
+
+            return {
+                "session_id": active_session_id,
+                "response": reply_text,
+                "structured_analysis": parsed_resp
+            }
+
+        except Exception as e:
+            logger.error(f"[RAGService Error]: {e}")
+            fallback = f"🌾 **Advisory for {query}**: Please keep soil at healthy field capacity and monitor dashboard recommendations."
+            return {
+                "session_id": session_id or "default_session",
+                "response": fallback,
+                "structured_analysis": None
+            }
+        finally:
+            db.close()
+
+    def answer_farmer_query(self, *args, **kwargs) -> Dict[str, Any]:
         """Synchronous wrapper for backward compatibility."""
         import asyncio
         return asyncio.run(self.answer_farmer_query_async(*args, **kwargs))

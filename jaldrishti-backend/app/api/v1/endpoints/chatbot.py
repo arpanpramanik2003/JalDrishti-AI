@@ -19,6 +19,7 @@ def get_rag_service() -> RAGService:
     return _rag_service_instance
 
 class ChatRequest(BaseModel):
+    session_id: Optional[str] = Field(default=None, description="Multi-turn conversation session ID for context memory")
     query: str = Field(..., min_length=1, max_length=500, example="Will it rain tomorrow?", description="Farmer query text")
     language: str = Field(default="English", max_length=20, example="Bengali", description="Target response language (English, Bengali, Hindi)")
     farmer_name: Optional[str] = Field(default=None, max_length=50, description="Farmer display name for personalizing response")
@@ -29,9 +30,11 @@ class ChatRequest(BaseModel):
     longitude: Optional[float] = Field(default=None, ge=-180.0, le=180.0, description="Farm plot longitude for live weather forecast")
 
 class ChatResponse(BaseModel):
+    session_id: str
     query: str
     language: str
     response: str
+    structured_analysis: Optional[dict] = None
 
 @router.post("/query", response_model=ChatResponse)
 async def ask_agri_bot(
@@ -58,8 +61,10 @@ async def ask_agri_bot(
     except Exception as e:
         print(f"[Warning] Chatbot Weather fetch error: {e}")
 
-    answer = await rag.answer_farmer_query_async(
+    result = await rag.answer_farmer_query_async(
         query=payload.query,
+        user_id=current_user.id,
+        session_id=payload.session_id,
         language=payload.language,
         farmer_name=farmer_name,
         location_name=payload.location_name,
@@ -67,8 +72,11 @@ async def ask_agri_bot(
         farm_area_acres=payload.farm_area_acres,
         weather_data=weather_data
     )
+
     return ChatResponse(
+        session_id=result["session_id"],
         query=payload.query,
         language=payload.language,
-        response=answer
+        response=result["response"],
+        structured_analysis=result.get("structured_analysis")
     )
