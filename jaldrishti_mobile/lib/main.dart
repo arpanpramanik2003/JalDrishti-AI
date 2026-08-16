@@ -12,6 +12,7 @@ import 'screens/login_screen.dart';
 import 'core/constants/api_constants.dart';
 import 'core/services/fcm_service.dart';
 
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'core/services/offline_cache_service.dart';
@@ -56,6 +57,16 @@ class JalDrishtiApp extends StatelessWidget {
       navigatorKey: navigatorKey,
       title: 'JalDrishti AI',
       debugShowCheckedModeBanner: false,
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [
+        Locale('en', ''),
+        Locale('bn', ''),
+        Locale('hi', ''),
+      ],
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: themeProvider.themeMode,
