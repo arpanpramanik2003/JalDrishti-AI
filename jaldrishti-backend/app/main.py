@@ -5,34 +5,9 @@ from app.core.config import settings
 from app.core.rate_limiter import RateLimiterMiddleware
 from app.api.v1.endpoints import irrigation, chatbot, crop_info, auth, farm_plots
 from app.db.database import engine, Base
-import app.models.user # Ensure models are imported
-import app.models.farm_plot # Ensure models are imported for table creation
-
-# Create Database Tables on startup
-Base.metadata.create_all(bind=engine)
-
-# Auto-migrate new columns for SQLite database
-try:
-    with engine.connect() as conn:
-        inspector = inspect(engine)
-        if "farm_plots" in inspector.get_table_names():
-            columns = [c["name"] for c in inspector.get_columns("farm_plots")]
-            if "pump_hp" not in columns:
-                conn.execute(text("ALTER TABLE farm_plots ADD COLUMN pump_hp FLOAT DEFAULT 5.0"))
-            if "pump_flow_lps" not in columns:
-                conn.execute(text("ALTER TABLE farm_plots ADD COLUMN pump_flow_lps FLOAT DEFAULT 5.0"))
-            if "irrigation_method" not in columns:
-                conn.execute(text("ALTER TABLE farm_plots ADD COLUMN irrigation_method VARCHAR(30) DEFAULT 'flood'"))
-            if "soil_type" not in columns:
-                conn.execute(text("ALTER TABLE farm_plots ADD COLUMN soil_type VARCHAR(30) DEFAULT 'clay_loam'"))
-            conn.commit()
-        if "users" in inspector.get_table_names():
-            columns = [c["name"] for c in inspector.get_columns("users")]
-            if "fcm_token" not in columns:
-                conn.execute(text("ALTER TABLE users ADD COLUMN fcm_token VARCHAR(255)"))
-            conn.commit()
-except Exception as e:
-    print(f"[Info] Migration check notice: {e}")
+# Ensure models are imported for metadata registration
+import app.models.user
+import app.models.farm_plot
 
 app = FastAPI(
     title=settings.PROJECT_NAME,

@@ -2,12 +2,18 @@ from datetime import datetime, date
 
 class SoilWaterBucketModel:
     @staticmethod
-    def calculate_dynamic_crop_stage(sowing_date_str: str, crop_stages_config: dict) -> dict:
+    def calculate_dynamic_crop_stage(sowing_date_val, crop_stages_config: dict) -> dict:
         """
         Dynamically calculates the current growth stage, Kc factor, and root depth 
         based on the farmer's Sowing Date and elapsed days.
         """
-        sowing_date = datetime.strptime(sowing_date_str, "%Y-%m-%d").date()
+        if isinstance(sowing_date_val, date):
+            sowing_date = sowing_date_val
+        elif isinstance(sowing_date_val, datetime):
+            sowing_date = sowing_date_val.date()
+        else:
+            sowing_date = datetime.strptime(str(sowing_date_val), "%Y-%m-%d").date()
+
         today = date.today()
         elapsed_days = max(0, (today - sowing_date).days)
 

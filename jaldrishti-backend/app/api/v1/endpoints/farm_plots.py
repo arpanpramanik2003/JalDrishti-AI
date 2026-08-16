@@ -16,17 +16,6 @@ def get_user_farm_plots(
     db: Session = Depends(get_db)
 ):
     plots = db.query(FarmPlot).filter(FarmPlot.user_id == current_user.id).order_by(FarmPlot.is_primary.desc(), FarmPlot.id.asc()).all()
-    
-    # Auto-migrate legacy hardcoded "2026-06-15" sowing date records to today's date
-    today_str = date.today().strftime("%Y-%m-%d")
-    has_updates = False
-    for p in plots:
-        if p.sowing_date == "2026-06-15":
-            p.sowing_date = today_str
-            has_updates = True
-    if has_updates:
-        db.commit()
-
     return plots
 
 

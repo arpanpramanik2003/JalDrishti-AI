@@ -1,13 +1,13 @@
 from pydantic import BaseModel, Field, ConfigDict
-from typing import List, Optional
-from datetime import datetime
+from typing import List, Optional, Union
+from datetime import date, datetime
 
 class IrrigationRequest(BaseModel):
     plot_id: Optional[int] = Field(default=None, description="Farm plot ID for historical logging lookup")
     latitude: float = Field(..., description="Farm GPS Latitude")
     longitude: float = Field(..., description="Farm GPS Longitude")
     crop_id: str = Field(..., description="Crop unique identifier")
-    sowing_date: str = Field(..., description="Sowing date (YYYY-MM-DD)")
+    sowing_date: date = Field(..., description="Sowing date (YYYY-MM-DD)")
     field_name: Optional[str] = Field(default="Main Plot", description="User field label")
     area_acres: Optional[float] = Field(default=2.5, description="Plot size in acres")
     pump_hp: Optional[float] = Field(default=5.0, description="Pump Horsepower (HP)")
@@ -18,7 +18,7 @@ class IrrigationRequest(BaseModel):
 class IrrigationLogCreate(BaseModel):
     farm_plot_id: int = Field(..., description="Farm plot ID")
     applied_mm: float = Field(..., ge=0.1, le=500.0, description="Water depth applied in mm")
-    applied_date: Optional[str] = Field(default=None, description="YYYY-MM-DD date string (defaults to today)")
+    applied_date: Optional[date] = Field(default=None, description="YYYY-MM-DD date object (defaults to today)")
     notes: Optional[str] = Field(default="", max_length=200, description="Optional notes")
 
 class IrrigationLogResponse(BaseModel):
@@ -27,7 +27,7 @@ class IrrigationLogResponse(BaseModel):
     id: int
     farm_plot_id: int
     applied_mm: float
-    applied_date: str
+    applied_date: date
     notes: Optional[str] = None
     created_at: datetime
 
@@ -62,7 +62,7 @@ class CumulativeSavings(BaseModel):
 class IrrigationResponse(BaseModel):
     field_name: str
     crop_name: str
-    sowing_date: str
+    sowing_date: date
     elapsed_days: int
     current_growth_stage: str
     dynamic_kc: float

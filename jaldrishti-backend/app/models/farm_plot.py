@@ -1,5 +1,5 @@
 from datetime import date, datetime
-from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, Date, ForeignKey
 from sqlalchemy.orm import relationship
 from app.db.database import Base
 
@@ -7,14 +7,14 @@ class FarmPlot(Base):
     __tablename__ = "farm_plots"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     
     name = Column(String(100), nullable=False) # e.g. "Main Paddy Plot"
     location_name = Column(String(100), nullable=True, default="Burdwan, West Bengal")
     latitude = Column(Float, nullable=False, default=22.5726)
     longitude = Column(Float, nullable=False, default=88.3639)
     crop_id = Column(String(50), nullable=False, default="paddy_rice")
-    sowing_date = Column(String(20), nullable=False, default=lambda: date.today().strftime("%Y-%m-%d"))
+    sowing_date = Column(Date, nullable=False, default=date.today)
     area_acres = Column(Float, nullable=False, default=2.5)
     is_primary = Column(Boolean, default=False)
 
@@ -38,7 +38,7 @@ class IrrigationLog(Base):
     id = Column(Integer, primary_key=True, index=True)
     farm_plot_id = Column(Integer, ForeignKey("farm_plots.id"), nullable=False, index=True)
     applied_mm = Column(Float, nullable=False)
-    applied_date = Column(String(10), nullable=False, index=True) # YYYY-MM-DD
+    applied_date = Column(Date, nullable=False, index=True, default=date.today)
     notes = Column(String(200), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
