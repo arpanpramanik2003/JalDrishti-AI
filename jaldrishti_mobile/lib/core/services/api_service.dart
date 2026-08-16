@@ -9,10 +9,15 @@ class ApiService {
     required double lon,
     required String cropId,
     String growthStage = 'mid_season',
+    String? authToken,
   }) async {
     final response = await http.post(
       Uri.parse(ApiConstants.irrigationEndpoint),
-      headers: {'Content-Type': 'application/json'},
+      headers: {
+        'Content-Type': 'application/json',
+        if (authToken != null && authToken.isNotEmpty)
+          'Authorization': 'Bearer $authToken',
+      },
       body: jsonEncode({
         'latitude': lat,
         'longitude': lon,
@@ -29,9 +34,11 @@ class ApiService {
   }
 
   // Fetch Groq RAG Chatbot Response with Farmer Context & Weather Telemetry
-  static Future<String> askChatbot({
+  static Future<Map<String, dynamic>> askChatbot({
     required String query,
     required String language,
+    String? authToken,
+    String? sessionId,
     String? farmerName,
     String? locationName,
     String? currentCrop,
@@ -41,24 +48,28 @@ class ApiService {
   }) async {
     final response = await http.post(
       Uri.parse(ApiConstants.chatbotEndpoint),
-      headers: {'Content-Type': 'application/json'},
+      headers: {
+        'Content-Type': 'application/json',
+        if (authToken != null && authToken.isNotEmpty)
+          'Authorization': 'Bearer $authToken',
+      },
       body: jsonEncode({
         'query': query,
         'language': language,
-        if (farmerName != null) 'farmer_name': farmerName,
-        if (locationName != null) 'location_name': locationName,
-        if (currentCrop != null) 'current_crop': currentCrop,
-        if (farmAreaAcres != null) 'farm_area_acres': farmAreaAcres,
-        if (latitude != null) 'latitude': latitude,
-        if (longitude != null) 'longitude': longitude,
+        if (sessionId != null && sessionId.isNotEmpty) 'session_id': sessionId,
+        'farmer_name': ?farmerName,
+        'location_name': ?locationName,
+        'current_crop': ?currentCrop,
+        'farm_area_acres': ?farmAreaAcres,
+        'latitude': ?latitude,
+        'longitude': ?longitude,
       }),
     );
 
     if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      return data['response'] ?? 'No response received.';
+      return jsonDecode(response.body);
     } else {
-      throw Exception('Chatbot service error: ${response.statusCode}');
+      throw Exception('Chatbot service error: ${response.statusCode} - ${response.body}');
     }
   }
 }

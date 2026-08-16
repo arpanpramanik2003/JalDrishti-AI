@@ -41,6 +41,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   }
 
   Future<void> _fetchHistoryLogs() async {
+    final auth = Provider.of<AuthProvider>(context, listen: false);
     final farmPlotProvider = Provider.of<FarmPlotProvider>(context, listen: false);
     final selectedPlot = farmPlotProvider.selectedPlot;
     if (selectedPlot == null) return;
@@ -49,6 +50,10 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     try {
       final res = await http.get(
         Uri.parse('${ApiConstants.baseUrl}/irrigation/history/${selectedPlot.id}'),
+        headers: {
+          'Content-Type': 'application/json',
+          if (auth.token != null) 'Authorization': 'Bearer ${auth.token}',
+        },
       );
       if (res.statusCode == 200) {
         final List<dynamic> logs = jsonDecode(res.body);

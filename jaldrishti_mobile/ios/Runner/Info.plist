@@ -66,5 +66,11 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>JalDrishti uses your location to calculate real-time micro-climate weather evapotranspiration and field-specific irrigation schedules.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>JalDrishti uses speech recognition to allow farmers to speak voice questions to JalSathi AI.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>JalDrishti uses the microphone for voice input commands in regional languages.</string>
 </dict>
 </plist>

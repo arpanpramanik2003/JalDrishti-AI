@@ -2,17 +2,21 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../core/constants/api_constants.dart';
 import '../core/services/fcm_service.dart';
 import '../models/user_model.dart';
 
 class AuthProvider extends ChangeNotifier {
+  static const _storage = FlutterSecureStorage();
+
   bool _isAuthenticated = false;
   bool _isCheckingAuth = true;
   bool _isLoading = false;
   String? _errorMessage;
   UserModel? _user;
   String? _token;
+  String? _refreshToken;
 
   bool get isAuthenticated => _isAuthenticated;
   bool get isCheckingAuth => _isCheckingAuth;
@@ -20,25 +24,40 @@ class AuthProvider extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
   UserModel? get user => _user;
   String? get token => _token;
+  String? get refreshToken => _refreshToken;
 
   AuthProvider() {
     _checkExistingToken();
   }
 
-  // Check stored JWT token on app boot
+  // Check stored secure JWT token on app boot
   Future<void> _checkExistingToken() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final savedToken = prefs.getString('jwt_token');
+      // Migrate / clean legacy plaintext SharedPreferences token if present
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        if (prefs.containsKey('jwt_token')) {
+          await prefs.remove('jwt_token');
+        }
+      } catch (_) {}
+
+      final savedToken = await _storage.read(key: 'jwt_token');
+      final savedRefresh = await _storage.read(key: 'refresh_token');
 
       if (savedToken != null && savedToken.isNotEmpty) {
         _token = savedToken;
-        final success = await _fetchCurrentUserProfile();
+        _refreshToken = savedRefresh;
+        bool success = await _fetchCurrentUserProfile();
+        
+        // If access token expired, attempt auto-refresh via refresh token
+        if (!success && savedRefresh != null && savedRefresh.isNotEmpty) {
+          success = await refreshSession();
+        }
+
         if (success) {
           _isAuthenticated = true;
         } else {
-          await prefs.remove('jwt_token');
-          _token = null;
+          await _clearSecureTokens();
         }
       }
     } catch (e) {
@@ -47,6 +66,45 @@ class AuthProvider extends ChangeNotifier {
       _isCheckingAuth = false;
       notifyListeners();
     }
+  }
+
+  Future<void> _clearSecureTokens() async {
+    _token = null;
+    _refreshToken = null;
+    _isAuthenticated = false;
+    _user = null;
+    await _storage.delete(key: 'jwt_token');
+    await _storage.delete(key: 'refresh_token');
+  }
+
+  // Refresh Session via Refresh Token
+  Future<bool> refreshSession() async {
+    final refToken = _refreshToken ?? await _storage.read(key: 'refresh_token');
+    if (refToken == null || refToken.isEmpty) return false;
+
+    try {
+      final response = await http.post(
+        Uri.parse('${ApiConstants.baseUrl}/auth/refresh'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'refresh_token': refToken}),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        _token = data['access_token'];
+        _refreshToken = data['refresh_token'];
+        _user = UserModel.fromJson(data['user']);
+        
+        await _storage.write(key: 'jwt_token', value: _token!);
+        await _storage.write(key: 'refresh_token', value: _refreshToken!);
+        _isAuthenticated = true;
+        notifyListeners();
+        return true;
+      }
+    } catch (e) {
+      debugPrint('Refresh session error: $e');
+    }
+    return false;
   }
 
   // Register New Farmer Account
@@ -74,11 +132,14 @@ class AuthProvider extends ChangeNotifier {
 
       if (response.statusCode == 200) {
         _token = data['access_token'];
+        _refreshToken = data['refresh_token'];
         _user = UserModel.fromJson(data['user']);
         _isAuthenticated = true;
 
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('jwt_token', _token!);
+        await _storage.write(key: 'jwt_token', value: _token!);
+        if (_refreshToken != null) {
+          await _storage.write(key: 'refresh_token', value: _refreshToken!);
+        }
         FcmService.syncDeviceTokenWithBackend(_token!);
         return true;
       } else {
@@ -117,11 +178,14 @@ class AuthProvider extends ChangeNotifier {
 
       if (response.statusCode == 200) {
         _token = data['access_token'];
+        _refreshToken = data['refresh_token'];
         _user = UserModel.fromJson(data['user']);
         _isAuthenticated = true;
 
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('jwt_token', _token!);
+        await _storage.write(key: 'jwt_token', value: _token!);
+        if (_refreshToken != null) {
+          await _storage.write(key: 'refresh_token', value: _refreshToken!);
+        }
         FcmService.syncDeviceTokenWithBackend(_token!);
         return true;
       } else {
@@ -349,11 +413,20 @@ class AuthProvider extends ChangeNotifier {
 
   // Logout
   Future<void> logout() async {
-    _isAuthenticated = false;
-    _user = null;
-    _token = null;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('jwt_token');
+    if (_token != null) {
+      try {
+        await http.post(
+          Uri.parse('${ApiConstants.baseUrl}/auth/logout'),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $_token',
+          },
+        );
+      } catch (e) {
+        debugPrint('Logout backend revocation warning: $e');
+      }
+    }
+    await _clearSecureTokens();
     notifyListeners();
   }
 }

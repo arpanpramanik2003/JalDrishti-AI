@@ -52,7 +52,10 @@ class IrrigationProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> loadIrrigationData({NotificationProvider? notificationProvider}) async {
+  Future<void> loadIrrigationData({
+    NotificationProvider? notificationProvider,
+    String? authToken,
+  }) async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
@@ -60,7 +63,11 @@ class IrrigationProvider extends ChangeNotifier {
     try {
       final response = await http.post(
         Uri.parse(ApiConstants.irrigationEndpoint),
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          if (authToken != null && authToken.isNotEmpty)
+            'Authorization': 'Bearer $authToken',
+        },
         body: jsonEncode({
           if (_plotId != null) 'plot_id': _plotId,
           'latitude': _latitude,
@@ -134,6 +141,7 @@ class IrrigationProvider extends ChangeNotifier {
     double pumpFlowLps = 5.0,
     String irrigationMethod = 'flood',
     String soilType = 'clay_loam',
+    String? authToken,
   }) {
     _plotId = plotId;
     _latitude = lat;
@@ -147,7 +155,7 @@ class IrrigationProvider extends ChangeNotifier {
     _irrigationMethod = irrigationMethod;
     _soilType = soilType;
     _todayLoggedMm = 0.0;
-    loadIrrigationData();
+    loadIrrigationData(authToken: authToken);
   }
 
   void updateFarmSetup({
@@ -161,6 +169,7 @@ class IrrigationProvider extends ChangeNotifier {
     double pumpFlowLps = 5.0,
     String irrigationMethod = 'flood',
     String soilType = 'clay_loam',
+    String? authToken,
   }) {
     _plotId = plotId;
     _latitude = lat;
@@ -172,18 +181,19 @@ class IrrigationProvider extends ChangeNotifier {
     _pumpFlowLps = pumpFlowLps;
     _irrigationMethod = irrigationMethod;
     _soilType = soilType;
-    loadIrrigationData();
+    loadIrrigationData(authToken: authToken);
   }
 
-  void updateCrop(String cropId) {
+  void updateCrop(String cropId, {String? authToken}) {
     _selectedCrop = cropId;
-    loadIrrigationData();
+    loadIrrigationData(authToken: authToken);
   }
 
   Future<bool> logIrrigationEvent({
     required int plotId,
     required double appliedMm,
     String notes = '',
+    String? authToken,
   }) async {
     _isLogging = true;
     notifyListeners();
@@ -191,7 +201,11 @@ class IrrigationProvider extends ChangeNotifier {
     try {
       final response = await http.post(
         Uri.parse('${ApiConstants.baseUrl}/irrigation/log'),
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          if (authToken != null && authToken.isNotEmpty)
+            'Authorization': 'Bearer $authToken',
+        },
         body: jsonEncode({
           'farm_plot_id': plotId,
           'applied_mm': appliedMm,
@@ -202,7 +216,7 @@ class IrrigationProvider extends ChangeNotifier {
       if (response.statusCode == 200) {
         _todayLoggedMm += appliedMm; // Optimistically update the logged total
         notifyListeners(); // Immediate UI feedback
-        await loadIrrigationData(); // Reload with updated water balance
+        await loadIrrigationData(authToken: authToken); // Reload with updated water balance
         return true;
       }
       return false;

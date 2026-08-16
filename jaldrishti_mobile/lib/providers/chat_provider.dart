@@ -159,11 +159,15 @@ class ChatProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  String? _sessionId;
+  String? get sessionId => _sessionId;
+
   // --------------------------------------------------------
   // Chat Messaging Logic
   // --------------------------------------------------------
   Future<void> sendMessage({
     required String text,
+    String? authToken,
     String? farmerName,
     String? locationName,
     String? currentCrop,
@@ -188,9 +192,11 @@ class ChatProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final responseText = await ApiService.askChatbot(
+      final resData = await ApiService.askChatbot(
         query: text.trim(),
         language: _selectedLanguage,
+        authToken: authToken,
+        sessionId: _sessionId,
         farmerName: farmerName,
         locationName: locationName,
         currentCrop: currentCrop,
@@ -198,6 +204,9 @@ class ChatProvider extends ChangeNotifier {
         latitude: latitude,
         longitude: longitude,
       );
+
+      _sessionId = resData['session_id'] ?? _sessionId;
+      final responseText = resData['response'] ?? 'No response received.';
 
       final botMessage = ChatMessage(
         id: (DateTime.now().millisecondsSinceEpoch + 1).toString(),
@@ -224,6 +233,7 @@ class ChatProvider extends ChangeNotifier {
 
   void clearChat() {
     stopSpeaking();
+    _sessionId = null;
     _messages.clear();
     notifyListeners();
   }

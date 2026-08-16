@@ -4,8 +4,10 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:lucide_icons/lucide_icons.dart';
+import 'package:provider/provider.dart';
 import '../../core/constants/api_constants.dart';
 import '../../models/farm_plot_model.dart';
+import '../../providers/auth_provider.dart';
 
 class HistoryLogsTab extends StatefulWidget {
   final FarmPlotModel? selectedPlot;
@@ -114,9 +116,13 @@ class _HistoryLogsTabState extends State<HistoryLogsTab> {
                           final depth = double.tryParse(depthController.text) ?? 10.0;
                           setDialogState(() => isSubmitting = true);
                           try {
+                            final auth = Provider.of<AuthProvider>(context, listen: false);
                             final res = await http.post(
-                              Uri.parse('${ApiConstants.baseUrl}/irrigation/log-run'),
-                              headers: {'Content-Type': 'application/json'},
+                              Uri.parse('${ApiConstants.baseUrl}/irrigation/log'),
+                              headers: {
+                                'Content-Type': 'application/json',
+                                if (auth.token != null) 'Authorization': 'Bearer ${auth.token}',
+                              },
                               body: jsonEncode({
                                 'farm_plot_id': widget.selectedPlot!.id,
                                 'applied_mm': depth,

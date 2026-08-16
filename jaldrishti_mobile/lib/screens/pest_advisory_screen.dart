@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:provider/provider.dart';
 import '../core/constants/api_constants.dart';
+import '../providers/auth_provider.dart';
 import '../providers/farm_plot_provider.dart';
 import '../providers/notification_provider.dart';
 import '../widgets/app_drawer.dart';
@@ -31,6 +32,7 @@ class _PestAdvisoryScreenState extends State<PestAdvisoryScreen> {
   }
 
   Future<void> _fetchPestAdvisory() async {
+    final auth = Provider.of<AuthProvider>(context, listen: false);
     final farmPlotProvider = Provider.of<FarmPlotProvider>(context, listen: false);
     final plot = farmPlotProvider.selectedPlot;
 
@@ -55,7 +57,10 @@ class _PestAdvisoryScreenState extends State<PestAdvisoryScreen> {
     try {
       final response = await http.post(
         Uri.parse('${ApiConstants.baseUrl}/crops/pest-advisory'),
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          if (auth.token != null) 'Authorization': 'Bearer ${auth.token}',
+        },
         body: jsonEncode({
           'crop_id': cropId,
           'latitude': lat,

@@ -2,22 +2,22 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiConstants {
-  // Live Production Backend Server on Render
-  static const String productionBaseUrl = 'https://jaldrishti-ai.onrender.com/api/v1';
+  // Live Production Backend Server default URL or build-time --dart-define override
+  static const String envConfiguredBaseUrl = String.fromEnvironment(
+    'API_BASE_URL',
+    defaultValue: 'https://jaldrishti-ai.onrender.com/api/v1',
+  );
 
-  // Local Network IP for USB / LAN debugging
-  static const String defaultLocalIp = '10.249.147.69';
-
-  // Default timeout duration for HTTP requests (45s to accommodate Render cold boot)
+  // Default timeout duration for HTTP requests
   static const Duration httpTimeout = Duration(seconds: 45);
 
   static String _activeMode = 'cloud'; // Default to Cloud Render backend
   static String _customUrl = '';
 
-  // Local Development Backend Server
+  // Local Development Backend Server (10.0.2.2 for Android Emulator, localhost for iOS/Web)
   static String get localBaseUrl {
     if (kIsWeb) return 'http://localhost:8000/api/v1';
-    return 'http://$defaultLocalIp:8000/api/v1';
+    return 'http://10.0.2.2:8000/api/v1';
   }
 
   /// Initialize backend settings from SharedPreferences on app boot
@@ -48,8 +48,8 @@ class ApiConstants {
   }
 
   /// Active Base URL:
-  /// - Cloud: https://jaldrishti-ai.onrender.com/api/v1
-  /// - Local: http://10.249.147.69:8000/api/v1
+  /// - Cloud: envConfiguredBaseUrl
+  /// - Local: localBaseUrl
   /// - Custom: user specified URL
   static String get baseUrl {
     if (_activeMode == 'local') {
@@ -57,7 +57,7 @@ class ApiConstants {
     } else if (_activeMode == 'custom' && _customUrl.trim().isNotEmpty) {
       return _customUrl.trim();
     }
-    return productionBaseUrl;
+    return envConfiguredBaseUrl;
   }
 
   static String get registerEndpoint => '$baseUrl/auth/register';

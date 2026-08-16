@@ -97,6 +97,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
     chatProvider.sendMessage(
       text: queryText,
+      authToken: auth.token,
       farmerName: farmerName,
       locationName: locationName,
       currentCrop: currentCrop,
