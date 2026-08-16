@@ -128,8 +128,7 @@ def request_password_reset_otp(payload: ForgotPasswordRequest, db: Session = Dep
     return ForgotPasswordResponse(
         status="success",
         message=f"OTP verification code sent to registered phone number ({masked_phone}).",
-        phone_number=user.phone_number,
-        otp_code_dev=otp
+        phone_number=user.phone_number
     )
 
 
@@ -249,8 +248,7 @@ def request_phone_update_otp(
     return RequestPhoneUpdateOtpResponse(
         status="success",
         message=f"OTP verification code sent to new phone number ({masked_phone}).",
-        new_phone_number=new_phone,
-        otp_code_dev=otp
+        new_phone_number=new_phone
     )
 
 

@@ -1,8 +1,9 @@
 import json
 import os
 from typing import Optional
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Header
 from pydantic import BaseModel, Field
+from app.core.config import settings
 from app.engine.pest_disease_engine import PestDiseaseEngine
 from app.services.weather_service import WeatherService
 
@@ -78,10 +79,17 @@ async def get_weather_pest_advisory(payload: PestAdvisoryRequest):
 
 
 @router.post("/trigger-batch-advisories")
-async def trigger_batch_advisories():
+async def trigger_batch_advisories(x_admin_api_key: Optional[str] = Header(None)):
     """
     Manually triggers the background daily weather evaluation batch job across all registered farmer plots.
+    Requires administrative API key header (X-Admin-API-Key).
     """
+    if not x_admin_api_key or x_admin_api_key != settings.ADMIN_API_KEY:
+        raise HTTPException(
+            status_code=403,
+            detail="Forbidden: Invalid or missing administrative API key header (X-Admin-API-Key)"
+        )
+
     from app.services.automated_advisory_cron import run_daily_weather_and_pest_batch_job
     result = await run_daily_weather_and_pest_batch_job()
     return result

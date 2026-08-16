@@ -6,7 +6,9 @@ from typing import List
 from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session
 from app.db.database import get_db
+from app.models.user import User
 from app.models.farm_plot import FarmPlot, IrrigationLog
+from app.core.security import get_current_user
 from app.schemas.irrigation_schema import (
     IrrigationRequest, IrrigationResponse, DailyMetric, WeatherSummary,
     IrrigationLogCreate, IrrigationLogResponse, CumulativeSavings
@@ -46,10 +48,16 @@ SOIL_DISPLAY_MAP = {
 }
 
 @router.post("/log", response_model=IrrigationLogResponse)
-def log_water_applied(payload: IrrigationLogCreate, db: Session = Depends(get_db)):
+def log_water_applied(
+    payload: IrrigationLogCreate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     plot = db.query(FarmPlot).filter(FarmPlot.id == payload.farm_plot_id).first()
     if not plot:
         raise HTTPException(status_code=404, detail="Farm plot not found")
+    if plot.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="You do not have permission to access or modify this farm plot")
 
     log_date = payload.applied_date if payload.applied_date else date.today().strftime("%Y-%m-%d")
 
@@ -66,13 +74,33 @@ def log_water_applied(payload: IrrigationLogCreate, db: Session = Depends(get_db
 
 
 @router.get("/history/{plot_id}", response_model=List[IrrigationLogResponse])
-def get_plot_irrigation_history(plot_id: int, db: Session = Depends(get_db)):
+def get_plot_irrigation_history(
+    plot_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    plot = db.query(FarmPlot).filter(FarmPlot.id == plot_id).first()
+    if not plot:
+        raise HTTPException(status_code=404, detail="Farm plot not found")
+    if plot.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="You do not have permission to access or modify this farm plot")
+
     logs = db.query(IrrigationLog).filter(IrrigationLog.farm_plot_id == plot_id).order_by(IrrigationLog.id.desc()).all()
     return logs
 
 
 @router.post("/recommendation", response_model=IrrigationResponse)
-async def get_irrigation_recommendation(payload: IrrigationRequest, db: Session = Depends(get_db)):
+async def get_irrigation_recommendation(
+    payload: IrrigationRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    if payload.plot_id:
+        plot = db.query(FarmPlot).filter(FarmPlot.id == payload.plot_id).first()
+        if not plot:
+            raise HTTPException(status_code=404, detail="Farm plot not found")
+        if plot.user_id != current_user.id:
+            raise HTTPException(status_code=403, detail="You do not have permission to access or modify this farm plot")
     # 1. Fetch Crop Profile
     crop_config = get_crop_config(payload.crop_id)
 
@@ -310,24 +338,3 @@ async def get_irrigation_recommendation(payload: IrrigationRequest, db: Session 
         weather_summary=weather_summary,
         daily_breakdown=daily_metrics
     )
-
-@router.get("/history/{plot_id}")
-def get_irrigation_history(plot_id: int, db: Session = Depends(get_db)):
-    """
-    Returns historical logged irrigation events for a specific farm plot.
-    """
-    logs = db.query(IrrigationLog).filter(
-        IrrigationLog.farm_plot_id == plot_id
-    ).order_by(IrrigationLog.created_at.desc()).all()
-    
-    return [
-        {
-            "id": log.id,
-            "farm_plot_id": log.farm_plot_id,
-            "applied_mm": log.applied_mm,
-            "applied_date": log.applied_date,
-            "notes": log.notes or "Pump Irrigation Session",
-            "created_at": log.created_at.isoformat() if log.created_at else None
-        }
-        for log in logs
-    ]

@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     GROQ_API_KEY: str = ""
     GROQ_MODEL_NAME: str = "llama-3.3-70b-versatile"
     WEATHER_API_KEY: str = ""
+    ADMIN_API_KEY: str = "jaldrishti_admin_secret_key_2026_prod"
 
     class Config:
         env_file = ".env"

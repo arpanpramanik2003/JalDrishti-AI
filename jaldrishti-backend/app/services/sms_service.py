@@ -16,8 +16,8 @@ class SMSService:
         sms_body = f"Your JalDrishti Password Reset OTP is: {otp_code}. Valid for 10 minutes. Do not share with anyone."
         
         print("\n=======================================================")
-        print(f"📱 [SMS DISPATCHER] -> TO: {phone_number}")
-        print(f"💬 MESSAGE: {sms_body}")
+        print(f"[SMS DISPATCHER] -> TO: {phone_number}")
+        print(f"[MESSAGE]: {sms_body}")
         print("=======================================================\n")
         
         # Production SMS Gateway Hook (Twilio / Fast2SMS / MSG91)

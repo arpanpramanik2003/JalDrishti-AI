@@ -34,7 +34,6 @@ class ForgotPasswordResponse(BaseModel):
     status: str
     message: str
     phone_number: str
-    otp_code_dev: Optional[str] = Field(default=None, description="Returned in dev mode for easy testing")
 
 # Reset Password with OTP Schema
 class ResetPasswordRequest(BaseModel):
@@ -57,7 +56,6 @@ class RequestPhoneUpdateOtpResponse(BaseModel):
     status: str
     message: str
     new_phone_number: str
-    otp_code_dev: Optional[str] = Field(default=None, description="Returned in dev mode for testing")
 
 # Verify OTP for Phone Update
 class VerifyPhoneUpdateOtpRequest(BaseModel):
