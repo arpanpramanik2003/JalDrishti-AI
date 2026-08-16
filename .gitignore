@@ -12,6 +12,9 @@ ehthumbs.db
 Thumbs.db
 desktop.ini
 
+# agents
+.agents/
+
 # Environment & Secret Files
 .env
 .env.*
