@@ -77,7 +77,8 @@ async def run_daily_weather_and_pest_batch_job(db: Session = None) -> dict:
                             title = f"⚠️ {disease_name} ({risk})"
                             body = f"High risk in {plot.name} ({crop_name}). {treatment}"
 
-                            sent = FirebaseService.send_push_notification(
+                            sent = await asyncio.to_thread(
+                                FirebaseService.send_push_notification,
                                 fcm_token=user.fcm_token,
                                 title=title,
                                 body=body,

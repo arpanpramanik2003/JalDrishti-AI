@@ -18,18 +18,12 @@ from app.services.soilgrids_service import SoilGridsService
 from app.engine.penman_monteith import PenmanMonteithEngine
 from app.engine.water_bucket_model import SoilWaterBucketModel
 
+from app.services.crop_config_service import CropConfigService
+
 router = APIRouter()
 
-CROP_DB_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', 'engine', 'crop_coefficients.json'))
-
 def get_crop_config(crop_id: str):
-    if not os.path.exists(CROP_DB_PATH):
-        raise HTTPException(status_code=500, detail="Crop database not found")
-    with open(CROP_DB_PATH, 'r', encoding='utf-8') as f:
-        crops = json.load(f)
-    if crop_id not in crops:
-        raise HTTPException(status_code=404, detail=f"Crop '{crop_id}' not found")
-    return crops[crop_id]
+    return CropConfigService.get_crop_config(crop_id)
 
 # Method efficiency map
 EFFICIENCY_MAP = {

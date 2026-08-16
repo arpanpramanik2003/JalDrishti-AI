@@ -12,20 +12,30 @@ class CacheService:
 
     @classmethod
     def _get_redis(cls):
-        if cls._redis_client is None and settings.REDIS_URL:
-            try:
-                import redis
-                cls._redis_client = redis.Redis.from_url(
-                    settings.REDIS_URL,
-                    decode_responses=True,
-                    socket_connect_timeout=3,
-                    socket_timeout=3
+        if cls._redis_client is None:
+            if settings.REDIS_URL:
+                try:
+                    import redis
+                    client = redis.Redis.from_url(
+                        settings.REDIS_URL,
+                        decode_responses=True,
+                        socket_connect_timeout=3,
+                        socket_timeout=3
+                    )
+                    client.ping()
+                    cls._redis_client = client
+                    logger.info("[CacheService] Connected to Redis Cloud successfully!")
+                except Exception as e:
+                    logger.warning(
+                        f"[CacheService WARNING] Redis connection to '{settings.REDIS_URL}' failed ({e}). "
+                        f"Falling back to single-process IN-MEMORY cache. Note: Limits and cached state will not persist across multi-worker Uvicorn deployments!"
+                    )
+                    cls._redis_client = False
+            else:
+                logger.warning(
+                    "[CacheService WARNING] REDIS_URL environment variable is not configured! "
+                    "Operating on single-process IN-MEMORY cache fallback."
                 )
-                # Ping test
-                cls._redis_client.ping()
-                logger.info("[CacheService] Connected to Redis Cloud successfully!")
-            except Exception as e:
-                logger.warning(f"[CacheService] Redis connection failed, falling back to memory cache: {e}")
                 cls._redis_client = False
         return cls._redis_client if cls._redis_client else None
 

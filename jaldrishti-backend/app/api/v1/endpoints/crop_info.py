@@ -9,7 +9,7 @@ from app.services.weather_service import WeatherService
 
 router = APIRouter()
 
-CROP_DB_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', 'engine', 'crop_coefficients.json'))
+from app.services.crop_config_service import CropConfigService
 
 class PestAdvisoryRequest(BaseModel):
     crop_id: str = Field(..., example="paddy_rice", description="Crop identifier")
@@ -18,24 +18,8 @@ class PestAdvisoryRequest(BaseModel):
 
 @router.get("/all")
 def get_all_crops():
-    """Dynamically returns all crops supported by the JalDrishti engine, sorted alphabetically."""
-    if not os.path.exists(CROP_DB_PATH):
-        raise HTTPException(status_code=500, detail="Crop database not found")
-    
-    with open(CROP_DB_PATH, 'r', encoding='utf-8') as f:
-        crop_data = json.load(f)
-        
-    crop_list = []
-    for crop_id, details in crop_data.items():
-        crop_list.append({
-            "id": crop_id,
-            "name": details.get("name", crop_id),
-            "season": details.get("season", "All-Season"),
-            "root_depth_m": details.get("root_depth_m", 0.5),
-            "depletion_fraction_p": details.get("depletion_fraction_p", 0.5)
-        })
-    
-    crop_list.sort(key=lambda x: x["name"])
+    """Dynamically returns all crops supported by the JalDrishti engine from memory cache."""
+    crop_list = CropConfigService.get_all_crops()
     return {"status": "success", "total_crops": len(crop_list), "crops": crop_list}
 
 @router.post("/pest-advisory")

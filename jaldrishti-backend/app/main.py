@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy import inspect, text
+from fastapi.middleware.gzip import GZipMiddleware
 from app.core.config import settings
 from app.core.rate_limiter import RateLimiterMiddleware
 from app.api.v1.endpoints import irrigation, chatbot, crop_info, auth, farm_plots
@@ -14,20 +14,8 @@ app = FastAPI(
     openapi_url=f"{settings.API_V1_STR}/openapi.json"
 )
 
-# Start Automated Background Weather & Disease Scheduler (Runs every 12 hours)
-try:
-    from apscheduler.schedulers.asyncio import AsyncIOScheduler
-    from app.services.automated_advisory_cron import run_daily_weather_and_pest_batch_job
-
-    scheduler = AsyncIOScheduler()
-
-    @app.on_event("startup")
-    def start_automated_scheduler():
-        scheduler.add_job(run_daily_weather_and_pest_batch_job, 'interval', hours=12)
-        scheduler.start()
-        print("[Scheduler] Automated background weather & pest monitoring scheduler active.")
-except Exception as scheduler_err:
-    print(f"[Scheduler Notice] {scheduler_err}")
+# GZip Response Compression Middleware (compresses payloads >1000 bytes for low-bandwidth networks)
+app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 # Multi-tier Redis-Backed Rate Limiting Middleware
 app.add_middleware(RateLimiterMiddleware)
