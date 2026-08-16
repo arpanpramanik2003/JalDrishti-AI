@@ -1,11 +1,10 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:provider/provider.dart';
-import '../../core/constants/api_constants.dart';
+import '../../core/services/api_service.dart';
+import '../../core/services/api_service.dart';
 import '../../models/farm_plot_model.dart';
 import '../../providers/auth_provider.dart';
 
@@ -117,20 +116,16 @@ class _HistoryLogsTabState extends State<HistoryLogsTab> {
                           setDialogState(() => isSubmitting = true);
                           try {
                             final auth = Provider.of<AuthProvider>(context, listen: false);
-                            final res = await http.post(
-                              Uri.parse('${ApiConstants.baseUrl}/irrigation/log'),
-                              headers: {
-                                'Content-Type': 'application/json',
-                                if (auth.token != null) 'Authorization': 'Bearer ${auth.token}',
-                              },
-                              body: jsonEncode({
-                                'farm_plot_id': widget.selectedPlot!.id,
-                                'applied_mm': depth,
-                                'applied_date': selectedDate,
-                                'notes': notesController.text,
-                              }),
-                            );
-                            if (res.statusCode == 200 || res.statusCode == 201) {
+                            if (auth.token != null) {
+                              await ApiService.logIrrigationEvent(
+                                payload: {
+                                  'farm_plot_id': widget.selectedPlot!.id,
+                                  'applied_mm': depth,
+                                  'applied_date': selectedDate,
+                                  'notes': notesController.text,
+                                },
+                                token: auth.token!,
+                              );
                               if (dialogCtx.mounted) Navigator.pop(dialogCtx);
                               widget.onRefreshRequested();
                             }

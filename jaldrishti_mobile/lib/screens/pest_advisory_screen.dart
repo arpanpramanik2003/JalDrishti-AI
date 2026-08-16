@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:provider/provider.dart';
 import '../core/constants/api_constants.dart';
+import '../core/services/api_service.dart';
 import '../providers/auth_provider.dart';
 import '../providers/farm_plot_provider.dart';
 import '../providers/notification_provider.dart';
@@ -55,52 +56,42 @@ class _PestAdvisoryScreenState extends State<PestAdvisoryScreen> {
     final lon = plot.longitude;
 
     try {
-      final response = await http.post(
-        Uri.parse('${ApiConstants.baseUrl}/crops/pest-advisory'),
-        headers: {
-          'Content-Type': 'application/json',
-          if (auth.token != null) 'Authorization': 'Bearer ${auth.token}',
-        },
-        body: jsonEncode({
+      final data = await ApiService.fetchPestAdvisory(
+        payload: {
           'crop_id': cropId,
           'latitude': lat,
           'longitude': lon,
-        }),
+        },
+        token: auth.token,
       );
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        setState(() {
-          _advisoryData = data;
-          _isLoading = false;
-        });
+      setState(() {
+        _advisoryData = data;
+        _isLoading = false;
+      });
 
-        // Trigger native device push notification for Critical or High weather disease alerts
-        if (mounted) {
-          final notifProvider = Provider.of<NotificationProvider>(context, listen: false);
-          final list = data['advisories'] as List? ?? [];
-          for (var item in list) {
-            final risk = item['risk_level']?.toString().toUpperCase();
-            if (risk == 'CRITICAL' || risk == 'HIGH') {
-              notifProvider.addNotification(
-                title: '⚠️ ${item['disease_name'] ?? 'Pest Warning'} (${item['risk_level']})',
-                body: '${item['category']} alert for ${plot.name}. ${item['chemical_treatment'] ?? ''}',
-                type: 'weather',
-              );
-            }
+      // Trigger native device push notification for Critical or High weather disease alerts
+      if (mounted) {
+        final notifProvider = Provider.of<NotificationProvider>(context, listen: false);
+        final list = data['advisories'] as List? ?? [];
+        for (var item in list) {
+          final risk = item['risk_level']?.toString().toUpperCase();
+          if (risk == 'CRITICAL' || risk == 'HIGH') {
+            notifProvider.addNotification(
+              title: '⚠️ ${item['disease_name'] ?? 'Pest Warning'} (${item['risk_level']})',
+              body: '${item['category']} alert for ${plot.name}. ${item['chemical_treatment'] ?? ''}',
+              type: 'weather',
+            );
           }
         }
-      } else {
+      }
+    } catch (e) {
+      if (mounted) {
         setState(() {
-          _errorMessage = 'Failed to load weather pest advisory (${response.statusCode})';
+          _errorMessage = e is ApiException ? e.message : 'Cannot connect to JalDrishti server.';
           _isLoading = false;
         });
       }
-    } catch (e) {
-      setState(() {
-        _errorMessage = 'Cannot connect to JalDrishti server.';
-        _isLoading = false;
-      });
     }
   }
 

@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:provider/provider.dart';
 import '../core/constants/api_constants.dart';
+import '../core/services/api_service.dart';
 import '../models/farm_plot_model.dart';
 import '../providers/auth_provider.dart';
 import '../providers/farm_plot_provider.dart';
@@ -44,27 +45,19 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     final auth = Provider.of<AuthProvider>(context, listen: false);
     final farmPlotProvider = Provider.of<FarmPlotProvider>(context, listen: false);
     final selectedPlot = farmPlotProvider.selectedPlot;
-    if (selectedPlot == null) return;
+    if (selectedPlot == null || auth.token == null) return;
 
     setState(() => _isLoadingHistory = true);
     try {
-      final res = await http.get(
-        Uri.parse('${ApiConstants.baseUrl}/irrigation/history/${selectedPlot.id}'),
-        headers: {
-          'Content-Type': 'application/json',
-          if (auth.token != null) 'Authorization': 'Bearer ${auth.token}',
-        },
+      final logs = await ApiService.fetchIrrigationHistory(
+        plotId: selectedPlot.id,
+        token: auth.token!,
       );
-      if (res.statusCode == 200) {
-        final List<dynamic> logs = jsonDecode(res.body);
-        if (mounted) {
-          setState(() {
-            _historyLogs = logs;
-            _isLoadingHistory = false;
-          });
-        }
-      } else {
-        if (mounted) setState(() => _isLoadingHistory = false);
+      if (mounted) {
+        setState(() {
+          _historyLogs = logs;
+          _isLoadingHistory = false;
+        });
       }
     } catch (_) {
       if (mounted) setState(() => _isLoadingHistory = false);

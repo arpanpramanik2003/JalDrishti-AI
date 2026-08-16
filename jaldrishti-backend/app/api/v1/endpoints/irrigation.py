@@ -109,7 +109,7 @@ async def get_irrigation_recommendation(
 
     # 2. Dynamic Stage & Kc Computation
     dynamic_stage = SoilWaterBucketModel.calculate_dynamic_crop_stage(
-        sowing_date_str=payload.sowing_date,
+        sowing_date_val=payload.sowing_date,
         crop_stages_config=crop_config
     )
 

@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'dart:convert';
-import 'package:http/http.dart' as http;
-import '../core/constants/api_constants.dart';
+import '../core/services/api_service.dart';
 import '../core/services/offline_cache_service.dart';
 import 'notification_provider.dart';
 
@@ -40,13 +38,10 @@ class IrrigationProvider extends ChangeNotifier {
 
   Future<void> fetchAvailableCrops() async {
     try {
-      final response = await http.get(Uri.parse('${ApiConstants.baseUrl}/crops/all'));
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        _availableCrops = List<Map<String, dynamic>>.from(data['crops']);
-        _availableCrops.sort((a, b) => (a['name'] as String).compareTo(b['name'] as String));
-        notifyListeners();
-      }
+      final crops = await ApiService.fetchCrops();
+      _availableCrops = List<Map<String, dynamic>>.from(crops);
+      _availableCrops.sort((a, b) => (a['name'] as String).compareTo(b['name'] as String));
+      notifyListeners();
     } catch (e) {
       debugPrint('Error fetching dynamic crop list: $e');
     }
@@ -61,14 +56,8 @@ class IrrigationProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final response = await http.post(
-        Uri.parse(ApiConstants.irrigationEndpoint),
-        headers: {
-          'Content-Type': 'application/json',
-          if (authToken != null && authToken.isNotEmpty)
-            'Authorization': 'Bearer $authToken',
-        },
-        body: jsonEncode({
+      final data = await ApiService.fetchIrrigationRecommendation(
+        payload: {
           if (_plotId != null) 'plot_id': _plotId,
           'latitude': _latitude,
           'longitude': _longitude,
@@ -80,19 +69,16 @@ class IrrigationProvider extends ChangeNotifier {
           'pump_flow_lps': _pumpFlowLps,
           'irrigation_method': _irrigationMethod,
           'soil_type': _soilType,
-        }),
+        },
+        token: authToken,
       );
 
-      if (response.statusCode == 200) {
-        _irrigationData = jsonDecode(response.body);
-        _isOfflineMode = false;
+      _irrigationData = data;
+      _isOfflineMode = false;
 
-        // Cache recommendation data locally
-        if (_plotId != null && _irrigationData != null) {
-          await OfflineCacheService.cacheIrrigationData(_plotId!, _irrigationData!);
-        }
-      } else {
-        _errorMessage = 'Backend Engine Error (${response.statusCode})';
+      // Cache recommendation data locally
+      if (_plotId != null && _irrigationData != null) {
+        await OfflineCacheService.cacheIrrigationData(_plotId!, _irrigationData!);
       }
     } catch (e) {
       // Offline fallback: load cached recommendation data
@@ -106,7 +92,7 @@ class IrrigationProvider extends ChangeNotifier {
           _errorMessage = 'Cannot connect to JalDrishti server (No cached data).';
         }
       } else {
-        _errorMessage = 'Cannot connect to JalDrishti server at ${ApiConstants.baseUrl}';
+        _errorMessage = 'Cannot connect to JalDrishti server.';
       }
     } finally {
       _isLoading = false;
@@ -195,31 +181,23 @@ class IrrigationProvider extends ChangeNotifier {
     String notes = '',
     String? authToken,
   }) async {
+    if (authToken == null) return false;
     _isLogging = true;
     notifyListeners();
 
     try {
-      final response = await http.post(
-        Uri.parse('${ApiConstants.baseUrl}/irrigation/log'),
-        headers: {
-          'Content-Type': 'application/json',
-          if (authToken != null && authToken.isNotEmpty)
-            'Authorization': 'Bearer $authToken',
-        },
-        body: jsonEncode({
+      await ApiService.logIrrigationEvent(
+        payload: {
           'farm_plot_id': plotId,
           'applied_mm': appliedMm,
           'notes': notes,
-        }),
+        },
+        token: authToken,
       );
-
-      if (response.statusCode == 200) {
-        _todayLoggedMm += appliedMm; // Optimistically update the logged total
-        notifyListeners(); // Immediate UI feedback
-        await loadIrrigationData(authToken: authToken); // Reload with updated water balance
-        return true;
-      }
-      return false;
+      _todayLoggedMm += appliedMm; // Optimistically update the logged total
+      notifyListeners(); // Immediate UI feedback
+      await loadIrrigationData(authToken: authToken); // Reload with updated water balance
+      return true;
     } catch (e) {
       return false;
     } finally {

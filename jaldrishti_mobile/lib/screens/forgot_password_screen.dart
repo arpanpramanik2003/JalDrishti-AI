@@ -70,7 +70,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
     final auth = context.read<AuthProvider>();
     final success = await auth.resetPasswordWithOtp(
-      phoneOrUsername: _identifierController.text.trim(),
+      phoneNumber: _identifierController.text.trim(),
       otpCode: _otpController.text.trim(),
       newPassword: _newPasswordController.text,
     );

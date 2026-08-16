@@ -193,16 +193,18 @@ class ChatProvider extends ChangeNotifier {
 
     try {
       final resData = await ApiService.askChatbot(
-        query: text.trim(),
-        language: _selectedLanguage,
-        authToken: authToken,
-        sessionId: _sessionId,
-        farmerName: farmerName,
-        locationName: locationName,
-        currentCrop: currentCrop,
-        farmAreaAcres: farmAreaAcres,
-        latitude: latitude,
-        longitude: longitude,
+        payload: {
+          'query': text.trim(),
+          'language': _selectedLanguage,
+          if (_sessionId != null && _sessionId!.isNotEmpty) 'session_id': _sessionId,
+          if (farmerName != null) 'farmer_name': farmerName,
+          if (locationName != null) 'location_name': locationName,
+          if (currentCrop != null) 'current_crop': currentCrop,
+          if (farmAreaAcres != null) 'farm_area_acres': farmAreaAcres,
+          if (latitude != null) 'latitude': latitude,
+          if (longitude != null) 'longitude': longitude,
+        },
+        token: authToken,
       );
 
       _sessionId = resData['session_id'] ?? _sessionId;

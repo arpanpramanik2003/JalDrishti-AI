@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
-import 'dart:convert';
-import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import '../core/constants/api_constants.dart';
+import '../core/services/api_service.dart';
 import '../core/services/fcm_service.dart';
 import '../models/user_model.dart';
 
@@ -83,26 +81,19 @@ class AuthProvider extends ChangeNotifier {
     if (refToken == null || refToken.isEmpty) return false;
 
     try {
-      final response = await http.post(
-        Uri.parse('${ApiConstants.baseUrl}/auth/refresh'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'refresh_token': refToken}),
-      );
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        _token = data['access_token'];
-        _refreshToken = data['refresh_token'];
-        _user = UserModel.fromJson(data['user']);
-        
-        await _storage.write(key: 'jwt_token', value: _token!);
-        await _storage.write(key: 'refresh_token', value: _refreshToken!);
-        _isAuthenticated = true;
-        notifyListeners();
-        return true;
-      }
+      final data = await ApiService.refreshToken(refToken);
+      _token = data['access_token'];
+      _refreshToken = data['refresh_token'];
+      _user = UserModel.fromJson(data['user']);
+      
+      await _storage.write(key: 'jwt_token', value: _token!);
+      await _storage.write(key: 'refresh_token', value: _refreshToken!);
+      _isAuthenticated = true;
+      notifyListeners();
+      return true;
     } catch (e) {
       debugPrint('Refresh session error: $e');
+      await _clearSecureTokens();
     }
     return false;
   }
@@ -118,34 +109,26 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final response = await http.post(
-        Uri.parse(ApiConstants.registerEndpoint),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'username': username.trim(),
-          'phone_number': phoneNumber.trim(),
-          'password': password,
-        }),
+      final data = await ApiService.register(
+        username: username.trim(),
+        phoneNumber: phoneNumber.trim(),
+        password: password,
       );
 
-      final data = jsonDecode(response.body);
+      _token = data['access_token'];
+      _refreshToken = data['refresh_token'];
+      _user = UserModel.fromJson(data['user']);
+      _isAuthenticated = true;
 
-      if (response.statusCode == 200) {
-        _token = data['access_token'];
-        _refreshToken = data['refresh_token'];
-        _user = UserModel.fromJson(data['user']);
-        _isAuthenticated = true;
-
-        await _storage.write(key: 'jwt_token', value: _token!);
-        if (_refreshToken != null) {
-          await _storage.write(key: 'refresh_token', value: _refreshToken!);
-        }
-        FcmService.syncDeviceTokenWithBackend(_token!);
-        return true;
-      } else {
-        _errorMessage = data['detail'] ?? 'Registration failed.';
-        return false;
+      await _storage.write(key: 'jwt_token', value: _token!);
+      if (_refreshToken != null) {
+        await _storage.write(key: 'refresh_token', value: _refreshToken!);
       }
+      FcmService.syncDeviceTokenWithBackend(_token!);
+      return true;
+    } on ApiException catch (e) {
+      _errorMessage = e.message;
+      return false;
     } catch (e) {
       _errorMessage = 'Cannot connect to JalDrishti server.';
       return false;
@@ -165,33 +148,25 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final response = await http.post(
-        Uri.parse(ApiConstants.loginEndpoint),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'login_identifier': loginIdentifier.trim(),
-          'password': password,
-        }),
+      final data = await ApiService.login(
+        loginIdentifier: loginIdentifier.trim(),
+        password: password,
       );
 
-      final data = jsonDecode(response.body);
+      _token = data['access_token'];
+      _refreshToken = data['refresh_token'];
+      _user = UserModel.fromJson(data['user']);
+      _isAuthenticated = true;
 
-      if (response.statusCode == 200) {
-        _token = data['access_token'];
-        _refreshToken = data['refresh_token'];
-        _user = UserModel.fromJson(data['user']);
-        _isAuthenticated = true;
-
-        await _storage.write(key: 'jwt_token', value: _token!);
-        if (_refreshToken != null) {
-          await _storage.write(key: 'refresh_token', value: _refreshToken!);
-        }
-        FcmService.syncDeviceTokenWithBackend(_token!);
-        return true;
-      } else {
-        _errorMessage = data['detail'] ?? 'Invalid credentials.';
-        return false;
+      await _storage.write(key: 'jwt_token', value: _token!);
+      if (_refreshToken != null) {
+        await _storage.write(key: 'refresh_token', value: _refreshToken!);
       }
+      FcmService.syncDeviceTokenWithBackend(_token!);
+      return true;
+    } on ApiException catch (e) {
+      _errorMessage = e.message;
+      return false;
     } catch (e) {
       _errorMessage = 'Cannot connect to JalDrishti server.';
       return false;
@@ -202,26 +177,16 @@ class AuthProvider extends ChangeNotifier {
   }
 
   // Request Password Reset OTP SMS
-  Future<Map<String, dynamic>?> requestPasswordResetOtp(String phoneOrUsername) async {
+  Future<Map<String, dynamic>?> requestPasswordResetOtp(String phoneNumber) async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      final response = await http.post(
-        Uri.parse(ApiConstants.requestOtpEndpoint),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'phone_or_username': phoneOrUsername.trim()}),
-      );
-
-      final data = jsonDecode(response.body);
-
-      if (response.statusCode == 200) {
-        return data;
-      } else {
-        _errorMessage = data['detail'] ?? 'Failed to request OTP.';
-        return null;
-      }
+      return await ApiService.requestPasswordResetOtp(phoneNumber.trim());
+    } on ApiException catch (e) {
+      _errorMessage = e.message;
+      return null;
     } catch (e) {
       _errorMessage = 'Cannot connect to JalDrishti server.';
       return null;
@@ -233,7 +198,7 @@ class AuthProvider extends ChangeNotifier {
 
   // Verify OTP and Reset Password
   Future<bool> resetPasswordWithOtp({
-    required String phoneOrUsername,
+    required String phoneNumber,
     required String otpCode,
     required String newPassword,
   }) async {
@@ -242,23 +207,15 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final response = await http.post(
-        Uri.parse(ApiConstants.resetPasswordEndpoint),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'phone_or_username': phoneOrUsername.trim(),
-          'otp_code': otpCode.trim(),
-          'new_password': newPassword,
-        }),
+      await ApiService.resetPassword(
+        phoneNumber: phoneNumber.trim(),
+        otpCode: otpCode.trim(),
+        newPassword: newPassword,
       );
-
-      if (response.statusCode == 200) {
-        return true;
-      } else {
-        final data = jsonDecode(response.body);
-        _errorMessage = data['detail'] ?? 'Failed to reset password.';
-        return false;
-      }
+      return true;
+    } on ApiException catch (e) {
+      _errorMessage = e.message;
+      return false;
     } catch (e) {
       _errorMessage = 'Connection error during password reset.';
       return false;
@@ -273,17 +230,9 @@ class AuthProvider extends ChangeNotifier {
     if (_token == null) return false;
 
     try {
-      final response = await http.get(
-        Uri.parse(ApiConstants.meEndpoint),
-        headers: {'Authorization': 'Bearer $_token'},
-      );
-
-      if (response.statusCode == 200) {
-        final userData = jsonDecode(response.body);
-        _user = UserModel.fromJson(userData);
-        return true;
-      }
-      return false;
+      final userData = await ApiService.fetchProfile(_token!);
+      _user = UserModel.fromJson(userData);
+      return true;
     } catch (e) {
       return false;
     }
@@ -298,23 +247,10 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final response = await http.post(
-        Uri.parse(ApiConstants.requestPhoneUpdateOtpEndpoint),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $_token',
-        },
-        body: jsonEncode({'new_phone_number': newPhoneNumber.trim()}),
-      );
-
-      final data = jsonDecode(response.body);
-
-      if (response.statusCode == 200) {
-        return data;
-      } else {
-        _errorMessage = data['detail'] ?? 'Failed to request OTP.';
-        return null;
-      }
+      return await ApiService.requestPhoneUpdateOtp(newPhoneNumber: newPhoneNumber.trim(), token: _token!);
+    } on ApiException catch (e) {
+      _errorMessage = e.message;
+      return null;
     } catch (e) {
       _errorMessage = 'Cannot connect to JalDrishti server.';
       return null;
@@ -336,28 +272,17 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final response = await http.post(
-        Uri.parse(ApiConstants.verifyPhoneUpdateOtpEndpoint),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $_token',
-        },
-        body: jsonEncode({
-          'new_phone_number': newPhoneNumber.trim(),
-          'otp_code': otpCode.trim(),
-        }),
+      final userData = await ApiService.verifyPhoneUpdateOtp(
+        newPhoneNumber: newPhoneNumber.trim(),
+        otpCode: otpCode.trim(),
+        token: _token!,
       );
-
-      if (response.statusCode == 200) {
-        final userData = jsonDecode(response.body);
-        _user = UserModel.fromJson(userData);
-        notifyListeners();
-        return true;
-      } else {
-        final data = jsonDecode(response.body);
-        _errorMessage = data['detail'] ?? 'Invalid or expired OTP.';
-        return false;
-      }
+      _user = UserModel.fromJson(userData);
+      notifyListeners();
+      return true;
+    } on ApiException catch (e) {
+      _errorMessage = e.message;
+      return false;
     } catch (e) {
       _errorMessage = 'Connection error verifying OTP.';
       return false;
@@ -376,32 +301,24 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final response = await http.put(
-        Uri.parse(ApiConstants.updateProfileEndpoint),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $_token',
-        },
-        body: jsonEncode(newProfile.toJson()),
+      final updatedProfileData = await ApiService.updateProfile(
+        profileData: newProfile.toJson(),
+        token: _token!,
       );
-
-      if (response.statusCode == 200) {
-        final updatedProfileData = jsonDecode(response.body);
-        final updatedProfile = UserProfileModel.fromJson(updatedProfileData);
-        if (_user != null) {
-          _user = UserModel(
-            id: _user!.id,
-            username: _user!.username,
-            phoneNumber: _user!.phoneNumber,
-            isActive: _user!.isActive,
-            profile: updatedProfile,
-          );
-        }
-        return true;
-      } else {
-        _errorMessage = 'Failed to update profile (${response.statusCode})';
-        return false;
+      final updatedProfile = UserProfileModel.fromJson(updatedProfileData);
+      if (_user != null) {
+        _user = UserModel(
+          id: _user!.id,
+          username: _user!.username,
+          phoneNumber: _user!.phoneNumber,
+          isActive: _user!.isActive,
+          profile: updatedProfile,
+        );
       }
+      return true;
+    } on ApiException catch (e) {
+      _errorMessage = e.message;
+      return false;
     } catch (e) {
       _errorMessage = 'Connection error updating profile.';
       return false;
@@ -414,17 +331,7 @@ class AuthProvider extends ChangeNotifier {
   // Logout
   Future<void> logout() async {
     if (_token != null) {
-      try {
-        await http.post(
-          Uri.parse('${ApiConstants.baseUrl}/auth/logout'),
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer $_token',
-          },
-        );
-      } catch (e) {
-        debugPrint('Logout backend revocation warning: $e');
-      }
+      await ApiService.logout(_token!);
     }
     await _clearSecureTokens();
     notifyListeners();
