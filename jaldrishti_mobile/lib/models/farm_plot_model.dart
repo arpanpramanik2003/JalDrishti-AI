@@ -15,6 +15,7 @@ class FarmPlotModel {
   final double pumpFlowLps;
   final String irrigationMethod;
   final String soilType;
+  final int version;
 
   FarmPlotModel({
     required this.id,
@@ -31,6 +32,7 @@ class FarmPlotModel {
     this.pumpFlowLps = 5.0,
     this.irrigationMethod = 'flood',
     this.soilType = 'clay_loam',
+    this.version = 1,
   });
 
   factory FarmPlotModel.fromJson(Map<String, dynamic> json) {
@@ -49,6 +51,7 @@ class FarmPlotModel {
       pumpFlowLps: (json['pump_flow_lps'] as num?)?.toDouble() ?? 5.0,
       irrigationMethod: json['irrigation_method'] ?? 'flood',
       soilType: json['soil_type'] ?? 'clay_loam',
+      version: json['version'] ?? 1,
     );
   }
 
@@ -66,6 +69,8 @@ class FarmPlotModel {
       'pump_flow_lps': pumpFlowLps,
       'irrigation_method': irrigationMethod,
       'soil_type': soilType,
+      'expected_version': version,
+      'version': version,
     };
   }
 }

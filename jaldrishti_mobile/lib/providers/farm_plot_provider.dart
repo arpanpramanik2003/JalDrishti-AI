@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../core/services/api_service.dart';
+import '../core/services/offline_sync_manager.dart';
 import '../models/farm_plot_model.dart';
 import 'auth_provider.dart';
 import 'irrigation_provider.dart';
@@ -11,10 +12,22 @@ class FarmPlotProvider extends ChangeNotifier {
   bool _isLoading = false;
   String? _errorMessage;
 
+  // Conflict state for UI resolution
+  bool _hasConflict = false;
+  Map<String, dynamic>? _conflictDetails;
+
   List<FarmPlotModel> get plots => List.unmodifiable(_plots);
   FarmPlotModel? get selectedPlot => _selectedPlot;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
+  bool get hasConflict => _hasConflict;
+  Map<String, dynamic>? get conflictDetails => _conflictDetails;
+
+  void clearConflict() {
+    _hasConflict = false;
+    _conflictDetails = null;
+    notifyListeners();
+  }
 
   // Fetch all farm plots of current user
   Future<void> fetchPlots({
@@ -92,57 +105,90 @@ class FarmPlotProvider extends ChangeNotifier {
     );
   }
 
-  // Create a New Farm Plot
+  // Create a New Farm Plot (Online & Offline Support)
   Future<bool> createPlot({
     required AuthProvider auth,
     required IrrigationProvider irrigation,
     required FarmPlotModel plotData,
   }) async {
-    if (auth.token == null) return false;
-
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      await ApiService.createPlot(plotData: plotData.toJson(), token: auth.token!);
-      await fetchPlots(auth: auth, irrigation: irrigation);
-      return true;
+      if (auth.token != null) {
+        await ApiService.createPlot(plotData: plotData.toJson(), token: auth.token!);
+        await fetchPlots(auth: auth, irrigation: irrigation);
+        return true;
+      }
+      throw ApiException(0, 'Offline');
     } on ApiException catch (e) {
+      if (e.statusCode == 0) {
+        // Offline mode: queue locally and add to local state
+        await OfflineSyncManager.queuePlotCreate(plotData.toJson());
+        _plots = [..._plots, plotData];
+        selectPlot(plotData, irrigation);
+        return true;
+      }
       _errorMessage = e.message;
       return false;
     } catch (e) {
-      _errorMessage = 'Connection error creating farm plot.';
-      return false;
+      await OfflineSyncManager.queuePlotCreate(plotData.toJson());
+      _plots = [..._plots, plotData];
+      selectPlot(plotData, irrigation);
+      return true;
     } finally {
       _isLoading = false;
       notifyListeners();
     }
   }
 
-  // Update Existing Farm Plot
+  // Update Existing Farm Plot (Online & Offline Support + 409 Conflict Handling)
   Future<bool> updatePlot({
     required AuthProvider auth,
     required IrrigationProvider irrigation,
     required int plotId,
     required FarmPlotModel plotData,
   }) async {
-    if (auth.token == null) return false;
-
     _isLoading = true;
     _errorMessage = null;
+    _hasConflict = false;
+    _conflictDetails = null;
     notifyListeners();
 
     try {
-      await ApiService.updatePlot(plotId: plotId, plotData: plotData.toJson(), token: auth.token!);
-      await fetchPlots(auth: auth, irrigation: irrigation);
-      return true;
+      if (auth.token != null) {
+        await ApiService.updatePlot(plotId: plotId, plotData: plotData.toJson(), token: auth.token!);
+        await fetchPlots(auth: auth, irrigation: irrigation);
+        return true;
+      }
+      throw ApiException(0, 'Offline');
     } on ApiException catch (e) {
+      if (e.statusCode == 409) {
+        // HTTP 409 Conflict: Plot modified elsewhere
+        _hasConflict = true;
+        _conflictDetails = {
+          'plot_id': plotId,
+          'local_plot': plotData,
+          'message': e.message,
+        };
+        _errorMessage = 'Conflict: This farm plot was modified elsewhere on the server.';
+        notifyListeners();
+        return false;
+      } else if (e.statusCode == 0) {
+        // Offline mode: queue locally and update optimistic state
+        await OfflineSyncManager.queuePlotUpdate(plotId: plotId, plotData: plotData.toJson());
+        _plots = _plots.map((p) => p.id == plotId ? plotData : p).toList();
+        if (_selectedPlot?.id == plotId) selectPlot(plotData, irrigation);
+        return true;
+      }
       _errorMessage = e.message;
       return false;
     } catch (e) {
-      _errorMessage = 'Connection error updating farm plot.';
-      return false;
+      await OfflineSyncManager.queuePlotUpdate(plotId: plotId, plotData: plotData.toJson());
+      _plots = _plots.map((p) => p.id == plotId ? plotData : p).toList();
+      if (_selectedPlot?.id == plotId) selectPlot(plotData, irrigation);
+      return true;
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -167,28 +213,41 @@ class FarmPlotProvider extends ChangeNotifier {
     return false;
   }
 
-  // Delete Farm Plot
+  // Delete Farm Plot (Online & Offline Support)
   Future<bool> deletePlot({
     required AuthProvider auth,
     required IrrigationProvider irrigation,
     required int plotId,
   }) async {
-    if (auth.token == null) return false;
-
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      await ApiService.deletePlot(plotId: plotId, token: auth.token!);
-      await fetchPlots(auth: auth, irrigation: irrigation);
-      return true;
+      if (auth.token != null) {
+        await ApiService.deletePlot(plotId: plotId, token: auth.token!);
+        await fetchPlots(auth: auth, irrigation: irrigation);
+        return true;
+      }
+      throw ApiException(0, 'Offline');
     } on ApiException catch (e) {
+      if (e.statusCode == 0) {
+        await OfflineSyncManager.queuePlotDelete(plotId);
+        _plots = _plots.where((p) => p.id != plotId).toList();
+        if (_selectedPlot?.id == plotId && _plots.isNotEmpty) {
+          selectPlot(_plots.first, irrigation);
+        }
+        return true;
+      }
       _errorMessage = e.message;
       return false;
     } catch (e) {
-      _errorMessage = 'Connection error deleting plot.';
-      return false;
+      await OfflineSyncManager.queuePlotDelete(plotId);
+      _plots = _plots.where((p) => p.id != plotId).toList();
+      if (_selectedPlot?.id == plotId && _plots.isNotEmpty) {
+        selectPlot(_plots.first, irrigation);
+      }
+      return true;
     } finally {
       _isLoading = false;
       notifyListeners();
