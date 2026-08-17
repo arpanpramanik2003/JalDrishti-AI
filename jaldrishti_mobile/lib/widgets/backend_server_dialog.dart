@@ -76,15 +76,10 @@ void showBackendServerDialog(BuildContext context, {VoidCallback? onUpdated}) {
                     value: 'usb',
                     groupValue: selectedMode,
                     title: Text('📱 Physical Phone (127.0.0.1 - adb reverse)', style: GoogleFonts.inter(fontSize: 14, color: textColor, fontWeight: FontWeight.w600)),
-                    subtitle: Text('http://127.0.0.1:8000/api/v1', style: GoogleFonts.inter(fontSize: 11, color: subtextColor)),
+                    subtitle: Text('http://127.0.0.1:8000/api/v1 (requires adb reverse)', style: GoogleFonts.inter(fontSize: 11, color: subtextColor)),
                     activeColor: const Color(0xFF38BDF8),
                     onChanged: (val) {
-                      if (val != null) {
-                        setDialogState(() {
-                          selectedMode = 'custom';
-                          customUrlController.text = 'http://127.0.0.1:8000/api/v1';
-                        });
-                      }
+                      if (val != null) setDialogState(() => selectedMode = val);
                     },
                   ),
 

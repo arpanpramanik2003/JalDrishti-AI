@@ -55,7 +55,9 @@ class ApiConstants {
   /// - Local: localBaseUrl
   /// - Custom: user specified URL
   static String get baseUrl {
-    if (_activeMode == 'local') {
+    if (_activeMode == 'usb') {
+      return 'http://127.0.0.1:8000/api/v1';
+    } else if (_activeMode == 'local') {
       return localBaseUrl;
     } else if (_activeMode == 'custom' && _customUrl.trim().isNotEmpty) {
       return _customUrl.trim();
