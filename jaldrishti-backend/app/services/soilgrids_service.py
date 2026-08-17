@@ -1,6 +1,12 @@
+import time
+import asyncio
 import httpx
+import logging
 from app.core.config import settings
 from app.services.cache_service import CacheService
+
+logger = logging.getLogger("jaldrishti.soilgrids")
+
 
 class SoilGridsService:
     # Default regional fallback (West Bengal Gangetic Alluvium Profile)
@@ -20,6 +26,11 @@ class SoilGridsService:
         "heavy_clay": {"clay_percent": 60.0, "sand_percent": 15.0, "name": "Heavy Clay (Maximum Moisture)"},
     }
 
+    # Circuit breaker & Stale memory storage
+    _circuit_breaker_until = 0
+    _consecutive_failures = 0
+    _stale_cache = {}
+
     @staticmethod
     def get_preset_soil_profile(soil_type: str) -> dict:
         """Returns clay % and sand % based on farmer's selected soil texture preset."""
@@ -33,23 +44,37 @@ class SoilGridsService:
             "preset_name": preset["name"]
         }
 
-    @staticmethod
-    async def fetch_soil_profile(lat: float, lon: float, custom_soil_type: str = None) -> dict:
+    @classmethod
+    async def fetch_soil_profile(cls, lat: float, lon: float, custom_soil_type: str = None) -> dict:
         """
-        Queries SoilGrids v2.0 REST API with Redis caching or returns selected custom soil texture preset.
+        Queries SoilGrids v2.0 REST API with 5.5km grid caching, circuit breaker protection,
+        retry policy, and fallback to user-selected presets or regional soil estimates.
         """
-        if custom_soil_type and custom_soil_type in SoilGridsService.SOIL_TYPE_PRESETS:
-            preset_props = SoilGridsService.get_preset_soil_profile(custom_soil_type)
+        if custom_soil_type and custom_soil_type in cls.SOIL_TYPE_PRESETS:
+            preset_props = cls.get_preset_soil_profile(custom_soil_type)
             return {"latitude": lat, "longitude": lon, "soil_properties": preset_props}
 
-        grid_lat = round(lat, 2)
-        grid_lon = round(lon, 2)
-        cache_key = f"soil:{grid_lat}:{grid_lon}"
+        # 1. Coarsen grid resolution to 0.05° (~5.5km x 5.5km grid cell)
+        grid_lat = round(round(lat * 20) / 20.0, 2)
+        grid_lon = round(round(lon * 20) / 20.0, 2)
+        cache_key = f"soil_grid:{grid_lat}:{grid_lon}"
 
+        # 2. Check Primary Redis / Memory Cache
         cached_data = CacheService.get(cache_key)
         if cached_data:
             return cached_data
 
+        # 3. Check Circuit Breaker Status
+        now = time.time()
+        if now < cls._circuit_breaker_until:
+            stale = cls._stale_cache.get(cache_key)
+            if stale:
+                logger.info(f"[SoilGrids] Serving stale cached soil profile for grid ({grid_lat}, {grid_lon}) during circuit breaker backoff.")
+                return stale
+            logger.info(f"[SoilGrids] Circuit breaker active. Serving regional fallback soil profile for ({grid_lat}, {grid_lon}).")
+            return {"latitude": lat, "longitude": lon, "soil_properties": cls.DEFAULT_SOIL_PROFILE}
+
+        # 4. Prepare API request parameters
         params = [
             ("lon", str(lon)),
             ("lat", str(lat)),
@@ -62,37 +87,57 @@ class SoilGridsService:
             ("depth", "15-30cm"),
             ("value", "mean")
         ]
-        
-        try:
-            async with httpx.AsyncClient(timeout=10.0) as client:
-                response = await client.get(settings.SOILGRIDS_BASE_URL, params=params)
-                response.raise_for_status()
-                data = response.json()
-                
-                layers = data.get("properties", {}).get("layers", [])
-                parsed_properties = {}
-                
-                for layer in layers:
-                    prop_name = layer.get("name")
-                    depths = layer.get("depths", [])
-                    values = [d["values"]["mean"] for d in depths if d.get("values", {}).get("mean") is not None]
-                    
-                    if values:
-                        raw_avg = sum(values) / len(values)
-                        if prop_name in ["clay", "sand"]:
-                            parsed_properties[f"{prop_name}_percent"] = raw_avg / 10.0
-                        elif prop_name == "bdod":
-                            parsed_properties["bulk_density_kg_dm3"] = raw_avg / 100.0
-                        elif prop_name == "soc":
-                            parsed_properties["soc_g_kg"] = raw_avg / 10.0
-                
-                parsed_properties["is_fallback"] = False
-                result = {"latitude": lat, "longitude": lon, "soil_properties": parsed_properties}
 
-                # Cache soil profile for 7 days (604800 seconds)
-                CacheService.set(cache_key, result, expire_seconds=604800)
-                return result
-                
-        except (httpx.HTTPStatusError, httpx.RequestError) as e:
-            print(f"⚠️ SoilGrids API unreachable ({type(e).__name__}). Using regional fallback data.")
-            return {"latitude": lat, "longitude": lon, "soil_properties": SoilGridsService.DEFAULT_SOIL_PROFILE}
+        # 5. Execute API call with 3.5s timeout and 1 retry attempt
+        max_attempts = 2
+        for attempt in range(1, max_attempts + 1):
+            try:
+                async with httpx.AsyncClient(timeout=3.5) as client:
+                    response = await client.get(settings.SOILGRIDS_BASE_URL, params=params)
+                    response.raise_for_status()
+                    data = response.json()
+
+                    layers = data.get("properties", {}).get("layers", [])
+                    parsed_properties = {}
+
+                    for layer in layers:
+                        prop_name = layer.get("name")
+                        depths = layer.get("depths", [])
+                        values = [d["values"]["mean"] for d in depths if d.get("values", {}).get("mean") is not None]
+
+                        if values:
+                            raw_avg = sum(values) / len(values)
+                            if prop_name in ["clay", "sand"]:
+                                parsed_properties[f"{prop_name}_percent"] = raw_avg / 10.0
+                            elif prop_name == "bdod":
+                                parsed_properties["bulk_density_kg_dm3"] = raw_avg / 100.0
+                            elif prop_name == "soc":
+                                parsed_properties["soc_g_kg"] = raw_avg / 10.0
+
+                    parsed_properties["is_fallback"] = False
+                    result = {"latitude": lat, "longitude": lon, "soil_properties": parsed_properties}
+
+                    # Reset circuit breaker on success
+                    cls._consecutive_failures = 0
+
+                    # Cache soil profile for 30 days (2,592,000 seconds)
+                    CacheService.set(cache_key, result, expire_seconds=2592000)
+                    cls._stale_cache[cache_key] = result
+                    return result
+
+            except (httpx.HTTPStatusError, httpx.RequestError, Exception) as e:
+                logger.warning(f"[SoilGrids Attempt {attempt}/{max_attempts}] Query failed for ({grid_lat}, {grid_lon}): {type(e).__name__}")
+                if attempt < max_attempts:
+                    await asyncio.sleep(0.5)
+
+        # 6. Handle Failure & Trigger Circuit Breaker
+        cls._consecutive_failures += 1
+        if cls._consecutive_failures >= 3:
+            cls._circuit_breaker_until = time.time() + 900 # 15-minute circuit breaker
+            logger.warning(f"[SoilGrids] 3 consecutive API failures reached. Entering 15-minute circuit breaker.")
+
+        stale = cls._stale_cache.get(cache_key)
+        if stale:
+            return stale
+
+        return {"latitude": lat, "longitude": lon, "soil_properties": cls.DEFAULT_SOIL_PROFILE}

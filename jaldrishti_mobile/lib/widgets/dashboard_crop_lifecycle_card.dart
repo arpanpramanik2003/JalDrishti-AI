@@ -28,6 +28,7 @@ class DashboardCropLifecycleCard extends StatelessWidget {
     final kc = (data?['dynamic_kc'] as num?)?.toDouble() ?? 1.15;
     final rootDepth = (data?['effective_root_depth_m'] as num?)?.toDouble() ?? 0.5;
     final soilType = data?['soil_type_display'] ?? 'Clay Loam (High Retention)';
+    final soilIsFallback = data?['soil_is_fallback'] as bool? ?? false;
 
     return Container(
       padding: const EdgeInsets.all(18),
@@ -76,20 +77,52 @@ class DashboardCropLifecycleCard extends StatelessWidget {
                       style: GoogleFonts.inter(fontSize: 11, color: subtextColor),
                     ),
                     const SizedBox(height: 4),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: accentColor.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        stageName.toUpperCase(),
-                        style: GoogleFonts.inter(
-                          fontSize: 9,
-                          fontWeight: FontWeight.bold,
-                          color: accentColor,
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: accentColor.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            stageName.toUpperCase(),
+                            style: GoogleFonts.inter(
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold,
+                              color: accentColor,
+                            ),
+                          ),
                         ),
-                      ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: (soilIsFallback ? const Color(0xFFF59E0B) : const Color(0xFF10B981)).withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: (soilIsFallback ? const Color(0xFFF59E0B) : const Color(0xFF10B981)).withValues(alpha: 0.4)),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                soilIsFallback ? LucideIcons.alertCircle : LucideIcons.checkCircle2,
+                                size: 10,
+                                color: soilIsFallback ? const Color(0xFFF59E0B) : const Color(0xFF10B981),
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                soilIsFallback ? 'Regional Soil Estimate' : 'Precise Soil Telemetry',
+                                style: GoogleFonts.inter(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.bold,
+                                  color: soilIsFallback ? const Color(0xFFF59E0B) : const Color(0xFF10B981),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),

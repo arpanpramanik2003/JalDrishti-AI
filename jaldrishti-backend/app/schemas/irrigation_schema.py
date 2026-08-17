@@ -82,6 +82,7 @@ class IrrigationResponse(BaseModel):
     irrigation_method_display: str
     irrigation_efficiency_pct: int
     soil_type_display: str
+    soil_is_fallback: bool = False
     status_summary: str
     
     # Smart Rain Hold & Cost Savings

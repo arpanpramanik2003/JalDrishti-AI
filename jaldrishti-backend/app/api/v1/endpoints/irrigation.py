@@ -333,6 +333,7 @@ async def get_irrigation_recommendation(
     )
 
     soil_display = SOIL_DISPLAY_MAP.get(payload.soil_type, "Clay Loam (High Retention)")
+    soil_is_fallback = props.get("is_fallback", False)
 
     return IrrigationResponse(
         field_name=payload.field_name,
@@ -352,6 +353,7 @@ async def get_irrigation_recommendation(
         irrigation_method_display=method_info["name"],
         irrigation_efficiency_pct=eff_pct,
         soil_type_display=soil_display,
+        soil_is_fallback=soil_is_fallback,
         status_summary=status_summary,
         rain_hold_active=rain_hold_active,
         rain_hold_message=rain_hold_message,
