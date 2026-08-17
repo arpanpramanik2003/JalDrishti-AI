@@ -62,7 +62,7 @@ class RAGService:
         q_lower = query.lower()
         return any(kw in q_lower for kw in self.WEATHER_KEYWORDS)
 
-    def _get_or_create_session(self, session_id: Optional[str], user_id: int, db) -> tuple[str, ChatConversation]:
+    def _get_or_create_session(self, session_id: Optional[str], user_id: int, db) -> tuple[str, int]:
         if not session_id:
             session_id = f"sess_{uuid.uuid4().hex[:16]}"
 
@@ -77,7 +77,7 @@ class RAGService:
             db.commit()
             db.refresh(conversation)
 
-        return session_id, conversation
+        return session_id, int(conversation.id)
 
     def _load_chat_history(self, session_id: str, conversation_id: int, db) -> List[Dict[str, str]]:
         # 1. Try Redis cache first
@@ -87,23 +87,34 @@ class RAGService:
             return cached
 
         # 2. Database fallback
-        msgs = db.query(ChatMessage).filter(
-            ChatMessage.conversation_id == conversation_id
-        ).order_by(ChatMessage.created_at.desc()).limit(6).all()
+        try:
+            msgs = db.query(ChatMessage).filter(
+                ChatMessage.conversation_id == conversation_id
+            ).order_by(ChatMessage.created_at.desc()).limit(6).all()
 
-        msgs.reverse()
-        formatted = [{"role": m.role, "content": m.content} for m in msgs]
-        
-        if formatted:
-            CacheService.set(cache_key, formatted, expire_seconds=86400)
-        return formatted
+            msgs.reverse()
+            formatted = [{"role": m.role, "content": m.content} for m in msgs]
+            
+            if formatted:
+                CacheService.set(cache_key, formatted, expire_seconds=86400)
+            return formatted
+        except Exception as e:
+            logger.warning(f"[RAGService] Load chat history warning: {e}")
+            return []
 
     def _save_chat_turn(self, session_id: str, conversation_id: int, user_query: str, assistant_reply: str, db):
-        # Save to DB
-        msg_user = ChatMessage(conversation_id=conversation_id, role="user", content=user_query)
-        msg_bot = ChatMessage(conversation_id=conversation_id, role="assistant", content=assistant_reply)
-        db.add_all([msg_user, msg_bot])
-        db.commit()
+        # Save to DB with exception safety
+        try:
+            msg_user = ChatMessage(conversation_id=conversation_id, role="user", content=user_query)
+            msg_bot = ChatMessage(conversation_id=conversation_id, role="assistant", content=assistant_reply)
+            db.add_all([msg_user, msg_bot])
+            db.commit()
+        except Exception as e:
+            logger.warning(f"[RAGService] Save chat turn DB warning: {e}")
+            try:
+                db.rollback()
+            except Exception:
+                pass
 
         # Update Redis cache
         history = self._load_chat_history(session_id, conversation_id, db)
@@ -136,7 +147,7 @@ class RAGService:
 
         db = SessionLocal()
         try:
-            active_session_id, conversation = self._get_or_create_session(session_id, user_id, db)
+            active_session_id, conv_id = self._get_or_create_session(session_id, user_id, db)
 
             # Check gratitude/closure
             gratitude_phrases = ["thanks", "thank you", "ok thanks", "no thanks", "dhanyabad", "dhanyavaad", "bye", "goodbye"]
@@ -145,7 +156,7 @@ class RAGService:
                     f"You're very welcome, **{farmer_name_greet}**! 🌾\n\n"
                     f"Wishing you a healthy and prosperous harvest. Feel free to reach out anytime if you have more questions about your fields!"
                 )
-                self._save_chat_turn(active_session_id, conversation.id, query, reply, db)
+                self._save_chat_turn(active_session_id, conv_id, query, reply, db)
                 return {
                     "session_id": active_session_id,
                     "response": reply,
@@ -191,7 +202,7 @@ class RAGService:
                 context_text = "No localized Package of Practices document context matched."
 
             # 4. Multi-Turn Session History
-            past_turns = self._load_chat_history(active_session_id, conversation.id, db)
+            past_turns = self._load_chat_history(active_session_id, conv_id, db)
 
             # 5. System Prompt with Structured Output Request
             system_prompt = (
@@ -223,7 +234,7 @@ class RAGService:
                     f"• **Recommended Action**: Monitor soil moisture using the JalDrishti dashboard.\n"
                     f"• **Tip**: Apply recommended fertilizer dosages according to crop growth stage."
                 )
-                self._save_chat_turn(active_session_id, conversation.id, query, fallback_reply, db)
+                self._save_chat_turn(active_session_id, conv_id, query, fallback_reply, db)
                 return {
                     "session_id": active_session_id,
                     "response": fallback_reply,
@@ -239,10 +250,10 @@ class RAGService:
             # Multi-Model Fallback Chain for Groq API (strictly active verified models)
             fallback_models = [
                 settings.GROQ_MODEL_NAME,
-                "openai/gpt-oss-120b",
                 "openai/gpt-oss-20b",
                 "groq/compound-mini",
-                "qwen/qwen3.6-27b"
+                "qwen/qwen3.6-27b",
+                "openai/gpt-oss-120b"
             ]
 
             model_chain = []
@@ -261,7 +272,7 @@ class RAGService:
                         messages=messages,
                         response_format={"type": "json_object"},
                         temperature=0.3,
-                        max_tokens=1000
+                        max_tokens=2500
                     )
                     if response:
                         logger.info(f"[RAGService] Successfully generated advisory using model: {model_id}")
@@ -298,7 +309,7 @@ class RAGService:
                 if additions:
                     reply_text += "\n\n" + "\n\n".join(additions)
 
-            self._save_chat_turn(active_session_id, conversation.id, query, reply_text, db)
+            self._save_chat_turn(active_session_id, conv_id, query, reply_text, db)
 
             return {
                 "session_id": active_session_id,

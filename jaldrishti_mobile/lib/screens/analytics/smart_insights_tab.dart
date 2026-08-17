@@ -35,7 +35,8 @@ class SmartInsightsTab extends StatelessWidget {
     final rainHoldActive = (irrigationData?['rain_hold_active'] as bool?) ?? false;
     final rainHoldMsg = irrigationData?['rain_hold_message'] as String?;
 
-    final cumSavings = irrigationData?['cumulative_savings'] as Map<String, dynamic>?;
+    final cumSavingsRaw = irrigationData?['cumulative_savings'];
+    final cumSavings = cumSavingsRaw is Map ? Map<String, dynamic>.from(cumSavingsRaw) : null;
     final cumWaterLiters = (cumSavings?['total_water_saved_liters'] as num?)?.toDouble() ?? 45000.0;
     final cumWaterKL = cumWaterLiters / 1000.0;
     final cumMoneyINR = (cumSavings?['total_money_saved_inr'] as num?)?.toDouble() ?? 850.0;

@@ -22,6 +22,7 @@ class ApiService {
     String? token,
     Map<String, dynamic>? body,
     Map<String, String>? customHeaders,
+    Duration? timeout,
   }) async {
     final uri = Uri.parse(url);
     final headers = <String, String>{
@@ -30,22 +31,24 @@ class ApiService {
       ...?customHeaders,
     };
 
+    final timeoutDuration = timeout ?? ApiConstants.httpTimeout;
+
     http.Response response;
     try {
       final bodyJson = body != null ? jsonEncode(body) : null;
       switch (method.toUpperCase()) {
         case 'POST':
-          response = await http.post(uri, headers: headers, body: bodyJson).timeout(ApiConstants.httpTimeout);
+          response = await http.post(uri, headers: headers, body: bodyJson).timeout(timeoutDuration);
           break;
         case 'PUT':
-          response = await http.put(uri, headers: headers, body: bodyJson).timeout(ApiConstants.httpTimeout);
+          response = await http.put(uri, headers: headers, body: bodyJson).timeout(timeoutDuration);
           break;
         case 'DELETE':
-          response = await http.delete(uri, headers: headers).timeout(ApiConstants.httpTimeout);
+          response = await http.delete(uri, headers: headers).timeout(timeoutDuration);
           break;
         case 'GET':
         default:
-          response = await http.get(uri, headers: headers).timeout(ApiConstants.httpTimeout);
+          response = await http.get(uri, headers: headers).timeout(timeoutDuration);
           break;
       }
     } catch (e) {
@@ -252,7 +255,7 @@ class ApiService {
     required Map<String, dynamic> payload,
     String? token,
   }) async {
-    return await _sendRequest('POST', ApiConstants.chatbotEndpoint, token: token, body: payload);
+    return await _sendRequest('POST', ApiConstants.chatbotEndpoint, token: token, body: payload, timeout: const Duration(seconds: 90));
   }
 
   static Future<Map<String, dynamic>> fetchPestAdvisory({

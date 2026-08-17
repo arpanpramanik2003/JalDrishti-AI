@@ -70,7 +70,8 @@ class RateLimiterMiddleware(BaseHTTPMiddleware):
                 if current_count > max_requests:
                     is_rate_limited = True
             except Exception as e:
-                logger.warning(f"[RateLimiter] Redis error ({e}), falling back to memory rate limiting.")
+                logger.warning(f"[RateLimiter] Redis error ({e}), resetting Redis connection pool.")
+                CacheService._redis_client = None
                 r = None
 
         # 2. Fallback to Process Memory Rate Limiting if Redis unavailable

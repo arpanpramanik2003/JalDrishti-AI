@@ -64,7 +64,7 @@ class FarmPlotProvider extends ChangeNotifier {
             ? _plots.firstWhere((p) => p.id == targetId)
             : _plots.firstWhere((p) => p.isPrimary, orElse: () => _plots.first);
 
-        selectPlot(targetPlot, irrigation);
+        selectPlot(targetPlot, irrigation, authToken: auth.token);
       } else {
         _selectedPlot = null;
       }
@@ -80,7 +80,7 @@ class FarmPlotProvider extends ChangeNotifier {
   }
 
   // Select Active Plot and update IrrigationProvider calculation
-  void selectPlot(FarmPlotModel plot, IrrigationProvider irrigation) async {
+  void selectPlot(FarmPlotModel plot, IrrigationProvider irrigation, {String? authToken}) async {
     _selectedPlot = plot;
     notifyListeners();
 
@@ -102,6 +102,7 @@ class FarmPlotProvider extends ChangeNotifier {
       pumpFlowLps: plot.pumpFlowLps,
       irrigationMethod: plot.irrigationMethod,
       soilType: plot.soilType,
+      authToken: authToken,
     );
   }
 

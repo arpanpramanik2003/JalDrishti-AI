@@ -15,11 +15,15 @@ logger = logging.getLogger("jaldrishti.vector_search")
 
 class VectorSearchService:
     _model = None
+    _cached_embeddings: List[Dict[str, Any]] = None
 
     @classmethod
     def _get_model(cls):
         if cls._model is None:
             try:
+                os.environ["TOKENIZERS_PARALLELISM"] = "false"
+                os.environ["OMP_NUM_THREADS"] = "1"
+                os.environ["MKL_NUM_THREADS"] = "1"
                 from sentence_transformers import SentenceTransformer
                 logger.info("[VectorSearch] Loading SentenceTransformer model ('all-MiniLM-L6-v2')...")
                 cls._model = SentenceTransformer('all-MiniLM-L6-v2')
@@ -61,22 +65,24 @@ class VectorSearchService:
             new_records = []
 
             for fname in os.listdir(docs_dir):
-                if fname.endswith(".txt"):
+                if fname.endswith('.txt'):
                     fpath = os.path.join(docs_dir, fname)
                     try:
-                        with open(fpath, "r", encoding="utf-8") as f:
-                            content = f.read()
-                            paras = [p.strip() for p in content.split("\n\n") if len(p.strip()) > 30]
-                            for idx, p in enumerate(paras):
-                                vec = cls.encode_text(p)
-                                if vec:
-                                    doc_emb = DocumentEmbedding(
-                                        doc_name=fname,
-                                        chunk_index=idx,
-                                        content=p,
-                                        embedding=vec
-                                    )
-                                    new_records.append(doc_emb)
+                        with open(fpath, 'r', encoding='utf-8') as f:
+                            content = f.read().strip()
+                            if content:
+                                # Chunk large documents into 500-char passages
+                                chunks = [content[i:i+600] for i in range(0, len(content), 500)]
+                                for idx, chunk in enumerate(chunks):
+                                    emb = cls.encode_text(chunk)
+                                    if emb:
+                                        rec = DocumentEmbedding(
+                                            doc_name=fname,
+                                            chunk_index=idx,
+                                            content=chunk,
+                                            embedding=emb
+                                        )
+                                        new_records.append(rec)
                     except Exception as err:
                         logger.error(f"[VectorSearch] Error reading {fname}: {err}")
 
@@ -84,64 +90,85 @@ class VectorSearchService:
                 db.bulk_save_objects(new_records)
                 db.commit()
                 logger.info(f"[VectorSearch] Successfully generated and stored {len(new_records)} document vector embeddings.")
+                cls._cached_embeddings = None  # Reset cache so new records are reloaded
         finally:
             if close_session:
                 db.close()
+
+    _file_docs = None
+
+    @classmethod
+    def _get_local_docs(cls) -> List[Dict[str, str]]:
+        if cls._file_docs is None:
+            docs = []
+            docs_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', 'pop_docs'))
+            if os.path.exists(docs_dir):
+                for fname in os.listdir(docs_dir):
+                    if fname.endswith('.txt'):
+                        fpath = os.path.join(docs_dir, fname)
+                        try:
+                            with open(fpath, 'r', encoding='utf-8') as f:
+                                content = f.read()
+                                docs.append({
+                                    'doc_name': fname.replace('_guide.txt', '').upper(),
+                                    'content': content
+                                })
+                        except Exception as e:
+                            logger.warning(f"[VectorSearch] Error reading {fname}: {e}")
+            cls._file_docs = docs
+        return cls._file_docs
 
     @classmethod
     def search_semantic_chunks(cls, query: str, top_k: int = 3, db: Session = None) -> List[Dict[str, Any]]:
         """
-        Performs dense vector cosine similarity search against stored document embeddings.
+        Ultra-Fast Zero-Overhead In-Memory Local POP Document Retriever.
+        Eliminates remote PostgreSQL SSL database connection drops and 20s latency.
         """
-        query_vec = cls.encode_text(query)
-        if not query_vec:
+        docs = cls._get_local_docs()
+        if not docs:
             return []
 
-        close_session = False
-        if db is None:
-            db = SessionLocal()
-            close_session = True
+        query_words = set(query.lower().split())
+        scored = []
+        for d in docs:
+            content_lower = d['content'].lower()
+            matches = sum(1 for word in query_words if len(word) > 2 and word in content_lower)
+            # Extra boost if crop name matches document name
+            doc_name_lower = d['doc_name'].lower()
+            if any(word in doc_name_lower for word in query_words):
+                matches += 3
+            
+            score = matches / max(len(query_words), 1)
+            scored.append((score, d['content'], d['doc_name']))
 
-        try:
-            records = db.query(DocumentEmbedding).all()
-            if not records:
-                docs_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', 'pop_docs'))
-                cls.initialize_and_index_docs(docs_dir, db=db)
-                records = db.query(DocumentEmbedding).all()
-                
-            if not records:
+        scored.sort(key=lambda x: x[0], reverse=True)
+        return [{'content': content, 'doc_name': doc_name, 'similarity': score} for score, content, doc_name in scored[:top_k] if score > 0]
+
+        scored = []
+        if np is not None:
+            q_arr = np.array(query_vec)
+            q_norm = float(np.linalg.norm(q_arr))
+            if q_norm == 0:
                 return []
+            for item in cls._cached_embeddings:
+                d_norm = item['norm']
+                if d_norm > 0:
+                    similarity = float(np.dot(q_arr, item['np_vec']) / (q_norm * d_norm))
+                    scored.append((similarity, item['content'], item['doc_name']))
+        else:
+            q_norm = math.sqrt(sum(x * x for x in query_vec))
+            if q_norm == 0:
+                return []
+            for item in cls._cached_embeddings:
+                d_norm = item['norm']
+                doc_vec = item['vec']
+                if d_norm > 0 and len(doc_vec) == len(query_vec):
+                    dot = sum(a * b for a, b in zip(query_vec, doc_vec))
+                    similarity = dot / (q_norm * d_norm)
+                    scored.append((similarity, item['content'], item['doc_name']))
 
-            scored = []
-            if np is not None:
-                q_norm = np.linalg.norm(query_vec)
-                if q_norm == 0:
-                    return []
-                for rec in records:
-                    doc_vec = np.array(rec.embedding)
-                    d_norm = np.linalg.norm(doc_vec)
-                    if d_norm > 0:
-                        similarity = float(np.dot(query_vec, doc_vec) / (q_norm * d_norm))
-                        scored.append((similarity, rec.content, rec.doc_name))
-            else:
-                # Pure Python Fallback (No numpy dependency needed)
-                q_norm = math.sqrt(sum(x * x for x in query_vec))
-                if q_norm == 0:
-                    return []
-                for rec in records:
-                    doc_vec = rec.embedding or []
-                    if len(doc_vec) == len(query_vec):
-                        dot = sum(a * b for a, b in zip(query_vec, doc_vec))
-                        d_norm = math.sqrt(sum(x * x for x in doc_vec))
-                        if d_norm > 0:
-                            similarity = dot / (q_norm * d_norm)
-                            scored.append((similarity, rec.content, rec.doc_name))
-
-            scored.sort(key=lambda x: x[0], reverse=True)
-            top_results = []
-            for sim, text, name in scored[:top_k]:
-                top_results.append({"similarity": sim, "content": text, "doc_name": name})
-            return top_results
-        finally:
-            if close_session:
-                db.close()
+        scored.sort(key=lambda x: x[0], reverse=True)
+        return [
+            {"similarity": float(s[0]), "content": s[1], "doc_name": s[2]}
+            for s in scored[:top_k]
+        ]

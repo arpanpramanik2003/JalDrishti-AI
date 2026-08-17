@@ -48,13 +48,14 @@ class CacheService:
                 if val:
                     return json.loads(val)
             except Exception as e:
-                logger.warning(f"[Cache] Redis get error: {e}")
+                logger.warning(f"[CacheService] Redis GET error for '{key}' ({e}). Resetting Redis connection pool.")
+                cls._redis_client = None
 
-        # Fallback memory cache with TTL check
-        entry = cls._memory_cache.get(key)
-        if entry:
-            val, expire_time = entry
-            if time.time() < expire_time:
+        # In-memory fallback
+        item = cls._memory_cache.get(key)
+        if item:
+            val, exp = item
+            if exp is None or time.time() < exp:
                 return val
             else:
                 del cls._memory_cache[key]
@@ -74,4 +75,16 @@ class CacheService:
                 return True
         except Exception as e:
             logger.warning(f"[Cache] Set error: {e}")
+            return False
+
+    @classmethod
+    def delete(cls, key: str) -> bool:
+        r = cls._get_redis()
+        try:
+            if r:
+                r.delete(key)
+            cls._memory_cache.pop(key, None)
+            return True
+        except Exception as e:
+            logger.warning(f"[Cache] Delete error: {e}")
             return False

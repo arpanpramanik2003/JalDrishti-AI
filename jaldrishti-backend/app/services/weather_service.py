@@ -30,30 +30,29 @@ class WeatherService:
         # 1. Check Primary Cache (Redis or TTL Memory)
         cached_data = CacheService.get(cache_key)
         if cached_data:
-            return cached_data
+            # Smart Cache Busting: If cached data came from old WeatherAPI, invalidate it immediately
+            if cached_data.get("source", "").startswith("WeatherAPI"):
+                logger.info(f"[WeatherService] Invalidating legacy WeatherAPI cache for ({grid_lat}, {grid_lon}).")
+                CacheService.delete(cache_key)
+                cls._stale_cache.pop(cache_key, None)
+            else:
+                return cached_data
 
         # 2. Check if Open-Meteo is currently in Circuit Breaker Backoff (due to 429 Rate Limit)
         now = time.time()
         if now < cls._rate_limit_backoff_until:
             stale = cls._stale_cache.get(cache_key)
-            if stale:
+            if stale and not stale.get("source", "").startswith("WeatherAPI"):
                 logger.info(f"[WeatherService] Serving stale cached weather for ({grid_lat}, {grid_lon}) during rate-limit backoff.")
                 return stale
             return cls._generate_fallback_telemetry(lat, lon, past_days, forecast_days)
 
-        # 3. If WeatherAPI key is provided, try WeatherAPI first
-        if settings.WEATHER_API_KEY:
-            res = await cls._fetch_from_weather_api(grid_lat, grid_lon, past_days, forecast_days)
-            if res:
-                CacheService.set(cache_key, res, expire_seconds=10800)
-                cls._stale_cache[cache_key] = res
-                return res
-
-        # 4. Fetch from Open-Meteo
+        # 3. Fetch from Open-Meteo (Primary High-Precision Meteorological Engine)
         params = {
             "latitude": grid_lat,
             "longitude": grid_lon,
-            "daily": "temperature_2m_max,temperature_2m_min,relative_humidity_2m_mean,shortwave_radiation_sum,wind_speed_10m_max,precipitation_sum",
+            "daily": "temperature_2m_max,temperature_2m_min,relative_humidity_2m_mean,shortwave_radiation_sum,wind_speed_10m_max,precipitation_sum,et0_fao_evapotranspiration",
+            "models": "best_match",
             "timezone": "auto",
             "past_days": past_days,
             "forecast_days": forecast_days
@@ -65,7 +64,7 @@ class WeatherService:
         }
 
         try:
-            async with httpx.AsyncClient(timeout=15.0, follow_redirects=True) as client:
+            async with httpx.AsyncClient(timeout=3.0, follow_redirects=True) as client:
                 response = await client.get(cls.OPEN_METEO_URL, params=params, headers=headers)
                 
                 if response.status_code == 429:
@@ -74,6 +73,11 @@ class WeatherService:
                         f"[WeatherService] Open-Meteo 429 Rate Limit reached on shared IP. "
                         f"Entering 30-minute backoff circuit breaker."
                     )
+                    # Try WeatherAPI as secondary fallback
+                    if settings.WEATHER_API_KEY:
+                        res = await cls._fetch_from_weather_api(grid_lat, grid_lon, past_days, forecast_days)
+                        if res:
+                            return res
                     stale = cls._stale_cache.get(cache_key)
                     if stale:
                         return stale
@@ -91,13 +95,13 @@ class WeatherService:
                         "temp_max_c": daily["temperature_2m_max"][idx],
                         "temp_min_c": daily["temperature_2m_min"][idx],
                         "humidity_percent": daily["relative_humidity_2m_mean"][idx],
-                        "solar_rad_mj_m2": daily["shortwave_radiation_sum"][idx],
+                        "solar_rad_mj_m2": daily.get("shortwave_radiation_sum", [21.0]*len(dates))[idx] or 21.0,
                         "wind_speed_m_s": daily["wind_speed_10m_max"][idx] / 3.6,  # km/h to m/s
                         "precipitation_mm": daily["precipitation_sum"][idx]
                     }
 
                 result = {
-                    "source": "Open-Meteo Realtime API",
+                    "source": "Open-Meteo High Resolution API",
                     "latitude": lat,
                     "longitude": lon,
                     "elevation": data.get("elevation", 0),
@@ -110,7 +114,11 @@ class WeatherService:
                 return result
 
         except Exception as e:
-            logger.warning(f"[WeatherService] Open-Meteo notice ({e}). Using stale cache or fallback.")
+            logger.warning(f"[WeatherService] Open-Meteo notice ({e}). Trying WeatherAPI fallback...")
+            if settings.WEATHER_API_KEY:
+                res = await cls._fetch_from_weather_api(grid_lat, grid_lon, past_days, forecast_days)
+                if res:
+                    return res
             stale = cls._stale_cache.get(cache_key)
             if stale:
                 return stale
