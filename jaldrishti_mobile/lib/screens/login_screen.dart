@@ -4,6 +4,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
+import '../widgets/backend_server_dialog.dart';
+import '../core/constants/api_constants.dart';
 import 'register_screen.dart';
 import 'forgot_password_screen.dart';
 import 'main_navigation_screen.dart';
@@ -96,22 +98,33 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
             ),
+            // Top Server Configuration Action Button
             Positioned(
-              bottom: -60,
-              left: -40,
-              child: Container(
-                width: 220,
-                height: 220,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFF0D9488).withValues(alpha: 0.15),
-                      blurRadius: 80,
-                      spreadRadius: 20,
-                    ),
-                  ],
+              top: 12,
+              right: 16,
+              child: IconButton(
+                tooltip: 'Server Settings (${ApiConstants.activeMode})',
+                icon: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF161F30),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: const Color(0xFF38BDF8).withValues(alpha: 0.4)),
+                  ),
+                  child: const Icon(LucideIcons.server, size: 18, color: Color(0xFF38BDF8)),
                 ),
+                onPressed: () {
+                  showBackendServerDialog(context, onUpdated: () {
+                    setState(() {});
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Connected to backend: ${ApiConstants.baseUrl}'),
+                        backgroundColor: const Color(0xFF0284C7),
+                        duration: const Duration(seconds: 3),
+                      ),
+                    );
+                  });
+                },
               ),
             ),
 

@@ -6,6 +6,9 @@ import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import 'onboarding_survey_screen.dart';
 
+import '../widgets/backend_server_dialog.dart';
+import '../core/constants/api_constants.dart';
+
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
 
@@ -96,6 +99,35 @@ class _RegisterScreenState extends State<RegisterScreen> {
             ),
           ),
         ),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 16.0),
+            child: IconButton(
+              tooltip: 'Server Settings (${ApiConstants.activeMode})',
+              icon: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF161F30),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: const Color(0xFF38BDF8).withValues(alpha: 0.4)),
+                ),
+                child: const Icon(LucideIcons.server, size: 18, color: Color(0xFF38BDF8)),
+              ),
+              onPressed: () {
+                showBackendServerDialog(context, onUpdated: () {
+                  setState(() {});
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Connected to backend: ${ApiConstants.baseUrl}'),
+                      backgroundColor: const Color(0xFF0284C7),
+                      duration: const Duration(seconds: 3),
+                    ),
+                  );
+                });
+              },
+            ),
+          ),
+        ],
       ),
       body: SafeArea(
         child: Stack(

@@ -14,8 +14,11 @@ class ApiConstants {
   static String _activeMode = 'cloud'; // Default to Cloud Render backend
   static String _customUrl = '';
 
-  // Local Development Backend Server (10.0.2.2 for Android Emulator, localhost for iOS/Web)
+  // Local Development Backend Server
+  // - 10.0.2.2 for Android Studio Emulator
+  // - 127.0.0.1 for Physical USB Debugging (via adb reverse) / Web / iOS Simulator
   static String get localBaseUrl {
+    if (_customUrl.trim().isNotEmpty) return _customUrl.trim();
     if (kIsWeb) return 'http://localhost:8000/api/v1';
     return 'http://10.0.2.2:8000/api/v1';
   }

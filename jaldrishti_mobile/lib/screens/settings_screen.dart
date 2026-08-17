@@ -7,6 +7,7 @@ import '../providers/auth_provider.dart';
 import '../providers/notification_provider.dart';
 import '../providers/theme_provider.dart';
 import '../core/constants/api_constants.dart';
+import '../widgets/backend_server_dialog.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -438,103 +439,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _showBackendServerDialog(BuildContext context) {
-    String selectedMode = ApiConstants.activeMode;
-    final customUrlController = TextEditingController(text: ApiConstants.customUrl);
-
-    showDialog(
-      context: context,
-      builder: (ctx) {
-        return StatefulBuilder(
-          builder: (ctx, setDialogState) {
-            return AlertDialog(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-              title: Row(
-                children: [
-                  const Icon(LucideIcons.server, color: Color(0xFF38BDF8)),
-                  const SizedBox(width: 10),
-                  Text('Backend Server Mode', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 18)),
-                ],
-              ),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  RadioListTile<String>(
-                    value: 'cloud',
-                    groupValue: selectedMode,
-                    title: const Text('🌐 Render Cloud (Live)'),
-                    subtitle: const Text('https://jaldrishti-ai.onrender.com/api/v1', style: TextStyle(fontSize: 11)),
-                    activeColor: const Color(0xFF38BDF8),
-                    onChanged: (val) {
-                      if (val != null) setDialogState(() => selectedMode = val);
-                    },
-                  ),
-                  RadioListTile<String>(
-                    value: 'local',
-                    groupValue: selectedMode,
-                    title: const Text('💻 Local PC Server'),
-                    subtitle: Text(ApiConstants.localBaseUrl, style: const TextStyle(fontSize: 11)),
-                    activeColor: const Color(0xFF38BDF8),
-                    onChanged: (val) {
-                      if (val != null) setDialogState(() => selectedMode = val);
-                    },
-                  ),
-                  RadioListTile<String>(
-                    value: 'custom',
-                    groupValue: selectedMode,
-                    title: const Text('⚙️ Custom Backend URL'),
-                    activeColor: const Color(0xFF38BDF8),
-                    onChanged: (val) {
-                      if (val != null) setDialogState(() => selectedMode = val);
-                    },
-                  ),
-                  if (selectedMode == 'custom') ...[
-                    const SizedBox(height: 8),
-                    TextFormField(
-                      controller: customUrlController,
-                      decoration: InputDecoration(
-                        hintText: 'https://your-custom-backend.com/api/v1',
-                        labelText: 'Custom API URL',
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                        isDense: true,
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(ctx),
-                  child: const Text('Cancel'),
-                ),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF0284C7),
-                    foregroundColor: Colors.white,
-                  ),
-                  onPressed: () async {
-                    await ApiConstants.setBackendMode(
-                      selectedMode,
-                      customUrl: customUrlController.text.trim(),
-                    );
-                    if (ctx.mounted) Navigator.pop(ctx);
-                    setState(() {});
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Switched backend to ${ApiConstants.baseUrl}'),
-                          backgroundColor: const Color(0xFF0284C7),
-                        ),
-                      );
-                    }
-                  },
-                  child: const Text('Save & Apply'),
-                ),
-              ],
-            );
-          },
+    showBackendServerDialog(context, onUpdated: () {
+      setState(() {});
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Switched backend to ${ApiConstants.baseUrl}'),
+            backgroundColor: const Color(0xFF0284C7),
+          ),
         );
-      },
-    );
+      }
+    });
   }
 
   @override
