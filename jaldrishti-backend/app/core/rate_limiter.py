@@ -5,6 +5,7 @@ from fastapi import Request
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 from app.services.cache_service import CacheService
+from app.core.config import settings
 
 logger = logging.getLogger("jaldrishti.rate_limiter")
 
@@ -46,10 +47,13 @@ class RateLimiterMiddleware(BaseHTTPMiddleware):
         path = request.url.path
         category, max_requests, window_seconds = self._get_route_limit(path)
 
+        if category == "exempt":
+            return await call_next(request)
+
         client_ip = request.client.host if request.client else "127.0.0.1"
         
         # Bypass rate limits during automated unit testing
-        if client_ip == "testclient" or settings.ENVIRONMENT == "testing":
+        if client_ip == "testclient" or getattr(settings, "ENVIRONMENT", "").lower() == "testing":
             return await call_next(request)
 
         key = f"rate_limit:{category}:{client_ip}"
