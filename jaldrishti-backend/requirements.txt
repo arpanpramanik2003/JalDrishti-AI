@@ -24,6 +24,7 @@ redis>=5.0.3
 
 # AI & Groq LLM Engine (Lightweight, <5MB RAM)
 groq>=0.18.0
+numpy>=1.26.0
 
 # Push Notifications & Automated Background Scheduler
 firebase-admin>=6.5.0

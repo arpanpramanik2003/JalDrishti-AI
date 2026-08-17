@@ -17,19 +17,19 @@ class TestIrrigationEnd2End:
         and validates all output fields (crop name, Kc, volumetric water depth, pump runtime,
         soil fallback flag, and cumulative savings).
         """
+        import uuid
+        unique_str = uuid.uuid4().hex[:8]
+        username = f"e2e_{unique_str}"
+        phone_number = f"98{uuid.uuid4().int % 100000000:08d}"
+
         # 1. Register test user
         resp_reg = client.post("/api/v1/auth/register", json={
-            "username": "end2end_test_farmer",
-            "phone_number": "+919811223344",
+            "username": username,
+            "phone_number": phone_number,
             "password": "Password123!"
         })
-        if resp_reg.status_code == 200:
-            token = resp_reg.json()["access_token"]
-        else:
-            token = client.post("/api/v1/auth/login", json={
-                "login_identifier": "end2end_test_farmer",
-                "password": "Password123!"
-            }).json()["access_token"]
+        assert resp_reg.status_code == 200, f"Register failed: {resp_reg.json()}"
+        token = resp_reg.json()["access_token"]
 
         headers = {"Authorization": f"Bearer {token}"}
         sowing = (date.today() - timedelta(days=65)).strftime("%Y-%m-%d")

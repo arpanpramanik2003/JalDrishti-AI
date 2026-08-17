@@ -31,7 +31,7 @@ class SMSService:
         full_e164 = f"+91{clean_10_digit}" if len(clean_10_digit) == 10 else f"+{raw_digits}"
         masked_phone = f"{full_e164[:3]} ****** {full_e164[-4:]}" if len(full_e164) >= 8 else full_e164
 
-        is_dev_env = settings.ENVIRONMENT.lower() in ["development", "dev", "local"] or settings.ENABLE_DEV_OTP_LOGS
+        is_dev_env = settings.ENVIRONMENT.lower() in ["development", "dev", "local", "testing"] or settings.ENABLE_DEV_OTP_LOGS
 
         # 2. Development Logging (ONLY when in explicit dev environment)
         if is_dev_env:

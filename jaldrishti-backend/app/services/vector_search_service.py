@@ -1,11 +1,15 @@
 import os
 import math
-import numpy as np
 import logging
 from typing import List, Dict, Any
 from sqlalchemy.orm import Session
 from app.db.database import SessionLocal
 from app.models.document_embedding import DocumentEmbedding
+
+try:
+    import numpy as np
+except ImportError:
+    np = None
 
 logger = logging.getLogger("jaldrishti.vector_search")
 
@@ -108,17 +112,30 @@ class VectorSearchService:
             if not records:
                 return []
 
-            q_norm = np.linalg.norm(query_vec)
-            if q_norm == 0:
-                return []
-
             scored = []
-            for rec in records:
-                doc_vec = np.array(rec.embedding)
-                d_norm = np.linalg.norm(doc_vec)
-                if d_norm > 0:
-                    similarity = float(np.dot(query_vec, doc_vec) / (q_norm * d_norm))
-                    scored.append((similarity, rec.content, rec.doc_name))
+            if np is not None:
+                q_norm = np.linalg.norm(query_vec)
+                if q_norm == 0:
+                    return []
+                for rec in records:
+                    doc_vec = np.array(rec.embedding)
+                    d_norm = np.linalg.norm(doc_vec)
+                    if d_norm > 0:
+                        similarity = float(np.dot(query_vec, doc_vec) / (q_norm * d_norm))
+                        scored.append((similarity, rec.content, rec.doc_name))
+            else:
+                # Pure Python Fallback (No numpy dependency needed)
+                q_norm = math.sqrt(sum(x * x for x in query_vec))
+                if q_norm == 0:
+                    return []
+                for rec in records:
+                    doc_vec = rec.embedding or []
+                    if len(doc_vec) == len(query_vec):
+                        dot = sum(a * b for a, b in zip(query_vec, doc_vec))
+                        d_norm = math.sqrt(sum(x * x for x in doc_vec))
+                        if d_norm > 0:
+                            similarity = dot / (q_norm * d_norm)
+                            scored.append((similarity, rec.content, rec.doc_name))
 
             scored.sort(key=lambda x: x[0], reverse=True)
             top_results = []

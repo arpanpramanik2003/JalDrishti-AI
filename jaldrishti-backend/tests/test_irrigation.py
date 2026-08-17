@@ -6,6 +6,19 @@ from app.main import app
 client = TestClient(app)
 
 def test_irrigation_recommendation_and_logging():
+    # 0. Authenticate Test User
+    unique_str = uuid.uuid4().hex[:8]
+    username = f"irr_{unique_str}"
+    phone = f"97{uuid.uuid4().int % 100000000:08d}"
+
+    reg_resp = client.post("/api/v1/auth/register", json={
+        "username": username,
+        "phone_number": phone,
+        "password": "pass123456"
+    })
+    token = reg_resp.json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
     # 1. Test Irrigation Recommendation API
     req_payload = {
         "latitude": 22.5726,
@@ -20,7 +33,7 @@ def test_irrigation_recommendation_and_logging():
         "soil_type": "clay_loam"
     }
 
-    response = client.post("/api/v1/irrigation/recommendation", json=req_payload)
+    response = client.post("/api/v1/irrigation/recommendation", json=req_payload, headers=headers)
     assert response.status_code == 200, f"Recommendation failed: {response.json()}"
     data = response.json()
     assert "Paddy Rice" in data["crop_name"]
@@ -62,11 +75,11 @@ def test_irrigation_recommendation_and_logging():
         "farm_plot_id": plot_id,
         "applied_mm": 25.0,
         "notes": "Applied 2 hours of drip watering"
-    })
+    }, headers=headers)
     assert log_resp.status_code == 200
     assert log_resp.json()["applied_mm"] == 25.0
 
     # Fetch History
-    hist_resp = client.get(f"/api/v1/irrigation/history/{plot_id}")
+    hist_resp = client.get(f"/api/v1/irrigation/history/{plot_id}", headers=headers)
     assert hist_resp.status_code == 200
     assert len(hist_resp.json()) >= 1

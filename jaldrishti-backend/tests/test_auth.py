@@ -89,9 +89,15 @@ def test_forgot_password_otp_reset():
         "phone_or_username": username
     })
     assert req_resp.status_code == 200, f"Request OTP failed: {req_resp.json()}"
-    otp_data = req_resp.json()
-    assert "otp_code_dev" in otp_data
-    otp_code = otp_data["otp_code_dev"]
+
+    # Fetch OTP record directly from test DB
+    from app.db.database import SessionLocal
+    from app.models.user import PasswordReset
+    db = SessionLocal()
+    reset_rec = db.query(PasswordReset).filter_by(phone_number=phone_number).order_by(PasswordReset.id.desc()).first()
+    assert reset_rec is not None
+    otp_code = reset_rec.otp_code
+    db.close()
     assert len(otp_code) == 6
 
     # 2. Reset Password with OTP
