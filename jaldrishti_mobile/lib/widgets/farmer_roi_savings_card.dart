@@ -8,6 +8,11 @@ class FarmerRoiSavingsCard extends StatelessWidget {
   final double totalMoneySavedInr;
   final double totalCo2ReducedKg;
   final int skippedRunsCount;
+  final String? attributionNotice;
+  final String? stateCode;
+  final String? stateName;
+  final double? tariffRateInrHr;
+  final double? co2FactorKgHr;
 
   const FarmerRoiSavingsCard({
     super.key,
@@ -16,6 +21,11 @@ class FarmerRoiSavingsCard extends StatelessWidget {
     this.totalMoneySavedInr = 0.0,
     this.totalCo2ReducedKg = 0.0,
     this.skippedRunsCount = 0,
+    this.attributionNotice,
+    this.stateCode,
+    this.stateName,
+    this.tariffRateInrHr,
+    this.co2FactorKgHr,
   });
 
   // Compact number formatters to prevent overflow for large values
@@ -110,6 +120,24 @@ class FarmerRoiSavingsCard extends StatelessWidget {
                   ],
                 ),
               ),
+              if (stateCode != null || stateName != null)
+                Container(
+                  margin: const EdgeInsets.only(right: 6),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF10B981).withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.3)),
+                  ),
+                  child: Text(
+                    '${stateCode ?? "IND"} Rates',
+                    style: GoogleFonts.inter(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: const Color(0xFF10B981),
+                    ),
+                  ),
+                ),
               if (skippedRunsCount > 0)
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
@@ -142,9 +170,9 @@ class FarmerRoiSavingsCard extends StatelessWidget {
                   title: 'Money Saved',
                   formattedValue: formatCurrency(totalMoneySavedInr),
                   rawValueString: '₹ ${totalMoneySavedInr.toInt()}',
-                  subtitle: 'Pumping Cost ROI',
+                  subtitle: '${stateName ?? "State"} Pumping Tariff',
                   description:
-                      'Calculated from electricity/diesel pumping tariff (~₹80/hr) saved by preventing over-irrigation and skipping rain-hold sessions.',
+                      'Calculated using ${stateName ?? "state"} agricultural energy benchmark (~₹${tariffRateInrHr?.toInt() ?? 80}/hr) saved by preventing over-irrigation.\n\nSource: ${attributionNotice ?? "Calculated using state agricultural tariff benchmarks & CEA India Grid emission factor."}',
                   tip: 'Preventing unnecessary pumping reduces motor wear and saves substantial energy bills over the crop season.',
                   isDark: isDark,
                   textColor: textColor,
@@ -200,9 +228,9 @@ class FarmerRoiSavingsCard extends StatelessWidget {
                   title: 'CO₂ Reduced',
                   formattedValue: formatCo2(totalCo2ReducedKg),
                   rawValueString: '${totalCo2ReducedKg.toStringAsFixed(1)} kg CO₂',
-                  subtitle: 'Carbon Footprint',
+                  subtitle: '${stateCode ?? "Regional"} Grid Factor',
                   description:
-                      'Estimated carbon emissions prevented based on average grid electricity and diesel pump emission factors (2.8 kg CO₂/hr).',
+                      'Estimated carbon emissions prevented using ${stateName ?? "state"} grid/fuel factor (${co2FactorKgHr?.toStringAsFixed(2) ?? "2.68"} kg CO₂/hr).\n\nSource: ${attributionNotice ?? "CEA India Grid emission factor & diesel emission benchmarks."}',
                   tip: 'Reducing agricultural carbon footprint supports sustainable green farming certification.',
                   isDark: isDark,
                   textColor: textColor,

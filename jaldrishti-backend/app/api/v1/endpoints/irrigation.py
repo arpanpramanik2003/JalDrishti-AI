@@ -19,6 +19,7 @@ from app.engine.penman_monteith import PenmanMonteithEngine
 from app.engine.water_bucket_model import SoilWaterBucketModel
 
 from app.services.crop_config_service import CropConfigService
+from app.services.regional_tariff_service import RegionalTariffService
 
 router = APIRouter()
 
@@ -279,8 +280,24 @@ async def get_irrigation_recommendation(
                 f"will keep field moisture optimal. No pumping required."
             )
 
-    # 9. DYNAMIC FARMER ROI & SAVINGS TRACKER
-    # Calculate savings dynamically from plot area, method efficiency, database logs & rain-hold events
+    # 9. DYNAMIC REGIONAL FARMER ROI & SAVINGS TRACKER
+    # Fetch state-wise agricultural economic tariff & emissions benchmark
+    location_label = payload.field_name
+    if payload.plot_id and plot:
+        location_label = plot.location_name or payload.field_name
+
+    regional_profile = RegionalTariffService.get_tariff_for_plot(
+        db,
+        location_name=location_label,
+        lat=payload.latitude,
+        lon=payload.longitude
+    )
+
+    # Determine tariff rates based on pump type
+    is_electric = payload.irrigation_method in ["drip", "sprinkler"]
+    tariff_inr_hr = regional_profile.electric_tariff_inr_hr if is_electric else regional_profile.diesel_tariff_inr_hr
+    co2_factor_kg_hr = regional_profile.electric_co2_kg_hr if is_electric else regional_profile.diesel_co2_kg_hr
+
     total_logs_count = 0
     if payload.plot_id:
         logs_list = db.query(IrrigationLog).filter(IrrigationLog.farm_plot_id == payload.plot_id).all()
@@ -296,18 +313,23 @@ async def get_irrigation_recommendation(
     # Pump Hours Saved
     cum_pump_hours = round(cum_water_liters / (flow_lps * 3600.0), 1)
 
-    # Money Saved in INR (Electricity/Diesel Pumping Tariff ~₹80/hour)
-    cum_money_saved = round(cum_pump_hours * 80.0 + (estimated_cost_saved_inr if rain_hold_active else 0.0), 0)
+    # Money Saved in INR (State-specific regional tariff rate)
+    cum_money_saved = round(cum_pump_hours * tariff_inr_hr + (estimated_cost_saved_inr if rain_hold_active else 0.0), 0)
 
-    # Carbon Footprint Reduction (2.8 kg CO2 per pump hour)
-    cum_co2_kg = round(cum_pump_hours * 2.8, 1)
+    # Carbon Footprint Reduction (State-specific diesel/grid emission factor)
+    cum_co2_kg = round(cum_pump_hours * co2_factor_kg_hr, 1)
 
     cumulative_savings = CumulativeSavings(
         total_water_saved_liters=cum_water_liters,
         total_pump_hours_saved=cum_pump_hours,
         total_money_saved_inr=cum_money_saved,
         total_co2_reduced_kg=cum_co2_kg,
-        skipped_runs_count=session_count
+        skipped_runs_count=session_count,
+        state_code=regional_profile.state_code,
+        state_name=regional_profile.state_name,
+        tariff_rate_inr_hr=tariff_inr_hr,
+        co2_factor_kg_hr=co2_factor_kg_hr,
+        attribution_notice=regional_profile.attribution_notice
     )
 
     soil_display = SOIL_DISPLAY_MAP.get(payload.soil_type, "Clay Loam (High Retention)")

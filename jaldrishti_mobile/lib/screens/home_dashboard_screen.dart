@@ -1085,6 +1085,11 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                             totalMoneySavedInr: (data['cumulative_savings']['total_money_saved_inr'] as num?)?.toDouble() ?? 0.0,
                             totalCo2ReducedKg: (data['cumulative_savings']['total_co2_reduced_kg'] as num?)?.toDouble() ?? 0.0,
                             skippedRunsCount: (data['cumulative_savings']['skipped_runs_count'] as num?)?.toInt() ?? 0,
+                            attributionNotice: data['cumulative_savings']['attribution_notice'] as String?,
+                            stateCode: data['cumulative_savings']['state_code'] as String?,
+                            stateName: data['cumulative_savings']['state_name'] as String?,
+                            tariffRateInrHr: (data['cumulative_savings']['tariff_rate_inr_hr'] as num?)?.toDouble(),
+                            co2FactorKgHr: (data['cumulative_savings']['co2_factor_kg_hr'] as num?)?.toDouble(),
                           ),
 
                         // 5. Hydrological Recommendation Gauge Widget

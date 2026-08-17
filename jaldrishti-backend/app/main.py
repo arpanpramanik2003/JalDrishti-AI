@@ -3,11 +3,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from app.core.config import settings
 from app.core.rate_limiter import RateLimiterMiddleware
-from app.api.v1.endpoints import irrigation, chatbot, crop_info, auth, farm_plots
+from app.api.v1.endpoints import irrigation, chatbot, crop_info, auth, farm_plots, admin_tariffs
 from app.db.database import engine, Base
 # Ensure models are imported for metadata registration
 import app.models.user
 import app.models.farm_plot
+import app.models.regional_tariff
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -58,6 +59,12 @@ app.include_router(
     crop_info.router,
     prefix=f"{settings.API_V1_STR}/crops",
     tags=["Crop Management"]
+)
+
+app.include_router(
+    admin_tariffs.router,
+    prefix=f"{settings.API_V1_STR}/admin/tariffs",
+    tags=["Regional Tariffs Policy Engine"]
 )
 
 @app.api_route("/", methods=["GET", "HEAD"], tags=["Health Check"])

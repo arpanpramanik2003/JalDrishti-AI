@@ -58,6 +58,11 @@ class CumulativeSavings(BaseModel):
     total_money_saved_inr: float = 0.0
     total_co2_reduced_kg: float = 0.0
     skipped_runs_count: int = 0
+    state_code: Optional[str] = "DEFAULT"
+    state_name: Optional[str] = "National Benchmark"
+    tariff_rate_inr_hr: Optional[float] = 80.0
+    co2_factor_kg_hr: Optional[float] = 2.68
+    attribution_notice: Optional[str] = "Calculated using state agricultural benchmark & CEA India Grid emission factor."
 
 class IrrigationResponse(BaseModel):
     field_name: str

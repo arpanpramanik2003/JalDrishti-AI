@@ -14,6 +14,9 @@
 .svn/
 .artifacts/
 
+# Firebase config
+firebase_service_account.json
+
 # IntelliJ & IDE
 *.iml
 *.ipr

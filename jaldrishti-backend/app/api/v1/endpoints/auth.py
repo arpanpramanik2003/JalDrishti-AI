@@ -168,7 +168,12 @@ def request_password_reset_otp(payload: ForgotPasswordRequest, db: Session = Dep
     db.commit()
 
     # Dispatch SMS OTP
-    SMSService.send_otp_sms(user.phone_number, otp)
+    sent = SMSService.send_otp_sms(user.phone_number, otp)
+    if not sent:
+        raise HTTPException(
+            status_code=500,
+            detail="Unable to send verification code, please try again."
+        )
 
     # Obfuscate phone number for security response (e.g. +91 ****** 4321)
     phone = user.phone_number
@@ -290,7 +295,12 @@ def request_phone_update_otp(
     db.commit()
 
     # Dispatch SMS OTP
-    SMSService.send_otp_sms(new_phone, otp)
+    sent = SMSService.send_otp_sms(new_phone, otp)
+    if not sent:
+        raise HTTPException(
+            status_code=500,
+            detail="Unable to send verification code, please try again."
+        )
 
     masked_phone = new_phone[:3] + "******" + new_phone[-4:] if len(new_phone) >= 8 else new_phone
 
