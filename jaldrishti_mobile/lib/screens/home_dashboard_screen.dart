@@ -985,7 +985,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
               if (value == 'refresh') {
                 final notif = context.read<NotificationProvider>();
                 farmPlotProvider.fetchPlots(auth: auth, irrigation: irrigation);
-                irrigation.loadIrrigationData(notificationProvider: notif);
+                irrigation.loadIrrigationData(notificationProvider: notif, authToken: auth.token);
               } else if (value == 'guide') {
                 _showScientificTermsHelp(context);
               }
@@ -1026,7 +1026,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                   onRefresh: () async {
                     final notif = context.read<NotificationProvider>();
                     await farmPlotProvider.fetchPlots(auth: auth, irrigation: irrigation);
-                    await irrigation.loadIrrigationData(notificationProvider: notif);
+                    await irrigation.loadIrrigationData(notificationProvider: notif, authToken: auth.token);
                   },
                   child: SingleChildScrollView(
                     physics: const AlwaysScrollableScrollPhysics(),

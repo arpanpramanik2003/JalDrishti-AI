@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field
 from groq import AsyncGroq
 from app.core.config import settings
 from app.db.database import SessionLocal
+import app.models.user
 from app.models.chat_history import ChatConversation, ChatMessage
 from app.services.cache_service import CacheService
 from app.services.vector_search_service import VectorSearchService
@@ -235,13 +236,42 @@ class RAGService:
                 messages.append({"role": turn["role"], "content": turn["content"]})
             messages.append({"role": "user", "content": query})
 
-            response = await self.client.chat.completions.create(
-                model=settings.GROQ_MODEL_NAME,
-                messages=messages,
-                response_format={"type": "json_object"},
-                temperature=0.3,
-                max_tokens=1000
-            )
+            # Multi-Model Fallback Chain for Groq API (strictly active verified models)
+            fallback_models = [
+                settings.GROQ_MODEL_NAME,
+                "openai/gpt-oss-120b",
+                "openai/gpt-oss-20b",
+                "groq/compound-mini",
+                "qwen/qwen3.6-27b"
+            ]
+
+            model_chain = []
+            for m in fallback_models:
+                if m and m not in model_chain:
+                    model_chain.append(m)
+
+            response = None
+            last_err = None
+
+            for model_id in model_chain:
+                try:
+                    logger.info(f"[RAGService] Invoking Groq LLM model: {model_id}")
+                    response = await self.client.chat.completions.create(
+                        model=model_id,
+                        messages=messages,
+                        response_format={"type": "json_object"},
+                        temperature=0.3,
+                        max_tokens=1000
+                    )
+                    if response:
+                        logger.info(f"[RAGService] Successfully generated advisory using model: {model_id}")
+                        break
+                except Exception as model_err:
+                    last_err = model_err
+                    logger.warning(f"[RAGService] Groq model '{model_id}' failed: {model_err}. Trying next fallback model...")
+
+            if not response:
+                raise last_err or Exception("All Groq LLM models in fallback chain failed.")
 
             raw_json = response.choices[0].message.content
             parsed_resp = json.loads(raw_json)

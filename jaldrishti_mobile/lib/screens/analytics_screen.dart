@@ -353,7 +353,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
             onPressed: () async {
               final notif = context.read<NotificationProvider>();
               await farmPlotProvider.fetchPlots(auth: auth, irrigation: irrigation);
-              await irrigation.loadIrrigationData(notificationProvider: notif);
+              await irrigation.loadIrrigationData(notificationProvider: notif, authToken: auth.token);
               _fetchHistoryLogs();
             },
             tooltip: 'Refresh Analytics',

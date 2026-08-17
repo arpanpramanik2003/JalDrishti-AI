@@ -19,7 +19,7 @@ class ApiConstants {
   // - 127.0.0.1 for Physical USB Debugging (via adb reverse) / Web / iOS Simulator
   static String get localBaseUrl {
     if (_customUrl.trim().isNotEmpty) return _customUrl.trim();
-    if (kIsWeb) return 'http://localhost:8000/api/v1';
+    if (kIsWeb) return 'http://127.0.0.1:8000/api/v1';
     return 'http://10.0.2.2:8000/api/v1';
   }
 
@@ -27,10 +27,10 @@ class ApiConstants {
   static Future<void> init() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      _activeMode = prefs.getString('backend_mode') ?? 'cloud';
+      _activeMode = prefs.getString('backend_mode') ?? (kIsWeb ? 'local' : 'cloud');
       _customUrl = prefs.getString('custom_backend_url') ?? '';
     } catch (_) {
-      _activeMode = 'cloud';
+      _activeMode = kIsWeb ? 'local' : 'cloud';
     }
   }
 
@@ -55,7 +55,7 @@ class ApiConstants {
   /// - Local: localBaseUrl
   /// - Custom: user specified URL
   static String get baseUrl {
-    if (_activeMode == 'usb') {
+    if (_activeMode == 'usb' || (_activeMode == 'local' && kIsWeb)) {
       return 'http://127.0.0.1:8000/api/v1';
     } else if (_activeMode == 'local') {
       return localBaseUrl;

@@ -21,10 +21,11 @@ app.add_middleware(GZipMiddleware, minimum_size=1000)
 # Multi-tier Redis-Backed Rate Limiting Middleware
 app.add_middleware(RateLimiterMiddleware)
 
-# Enable CORS with explicit allowed client origins
+# Enable CORS with explicit allowed client origins and regex for dynamic local dev ports (Flutter Web)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.ALLOWED_ORIGINS,
+    allow_origin_regex=r"http://(localhost|127\.0\.0\.1)(:\d+)?|https://.*",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

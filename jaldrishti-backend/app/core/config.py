@@ -26,7 +26,7 @@ class Settings(BaseSettings):
 
     # GROQ & Weather API Configurations
     GROQ_API_KEY: str = ""
-    GROQ_MODEL_NAME: str = "llama-3.3-70b-versatile"
+    GROQ_MODEL_NAME: str = "openai/gpt-oss-120b"
     WEATHER_API_KEY: str = ""
     ADMIN_API_KEY: str = "jaldrishti_admin_secret_key_2026_prod"
 

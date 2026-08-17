@@ -8,6 +8,7 @@ class IrrigationProvider extends ChangeNotifier {
   bool _isLogging = false;
   bool _isOfflineMode = false;
   String? _errorMessage;
+  String? _authToken;
   Map<String, dynamic>? _irrigationData;
   List<Map<String, dynamic>> _availableCrops = [];
   double _todayLoggedMm = 0.0; // Track today's logged total mm for UI
@@ -51,6 +52,11 @@ class IrrigationProvider extends ChangeNotifier {
     NotificationProvider? notificationProvider,
     String? authToken,
   }) async {
+    if (authToken != null && authToken.isNotEmpty) {
+      _authToken = authToken;
+    }
+    final tokenToUse = authToken ?? _authToken;
+
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
@@ -70,7 +76,7 @@ class IrrigationProvider extends ChangeNotifier {
           'irrigation_method': _irrigationMethod,
           'soil_type': _soilType,
         },
-        token: authToken,
+        token: tokenToUse,
       );
 
       _irrigationData = data;
