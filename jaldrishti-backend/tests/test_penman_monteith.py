@@ -9,9 +9,9 @@ class TestPenmanMonteithEngine:
 
     def test_hot_summer_day_reference_baseline(self):
         """
-        Reference Case 1: Hot Summer Day Baseline
+        Reference Case 1: Hot Summer Day Baseline (June 29, Day 180)
         Inputs: Temp 40°C/28°C, RH 45%, Solar 25 MJ/m²/day, Wind 3.5 m/s, Lat 23.23°
-        Expected ETo Baseline: 9.34 mm/day (± 0.05 mm/day tolerance)
+        Expected ETo Baseline: 8.93 mm/day (± 0.05 mm/day tolerance)
         """
         eto = PenmanMonteithEngine.calculate_daily_eto(
             temp_max=40.0,
@@ -20,15 +20,16 @@ class TestPenmanMonteithEngine:
             solar_rad_mj=25.0,
             wind_speed_2m=3.5,
             elevation_m=12.0,
-            latitude_deg=23.23
+            latitude_deg=23.23,
+            day_of_year=180
         )
-        assert eto == pytest.approx(9.34, abs=0.05)
+        assert eto == pytest.approx(8.93, abs=0.05)
 
     def test_cool_winter_day_reference_baseline(self):
         """
-        Reference Case 2: Cool Winter Day Baseline
+        Reference Case 2: Cool Winter Day Baseline (Jan 15, Day 15)
         Inputs: Temp 20°C/10°C, RH 70%, Solar 12 MJ/m²/day, Wind 1.2 m/s, Lat 23.23°
-        Expected ETo Baseline: 2.42 mm/day (± 0.05 mm/day tolerance)
+        Expected ETo Baseline: 1.98 mm/day (± 0.05 mm/day tolerance)
         """
         eto = PenmanMonteithEngine.calculate_daily_eto(
             temp_max=20.0,
@@ -37,9 +38,10 @@ class TestPenmanMonteithEngine:
             solar_rad_mj=12.0,
             wind_speed_2m=1.2,
             elevation_m=12.0,
-            latitude_deg=23.23
+            latitude_deg=23.23,
+            day_of_year=15
         )
-        assert eto == pytest.approx(2.42, abs=0.05)
+        assert eto == pytest.approx(1.98, abs=0.05)
 
     def test_zero_wind_speed_aerodynamic_stability(self):
         """
