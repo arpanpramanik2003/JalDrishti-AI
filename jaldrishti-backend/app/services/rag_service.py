@@ -298,12 +298,18 @@ class RAGService:
                 org = sol.get("organic_alternative")
                 prev = sol.get("preventative_cultural_tip")
 
+                def _is_valid_tip(val):
+                    if not val or not isinstance(val, str):
+                        return False
+                    v = val.strip().lower().rstrip('.')
+                    return v not in ["n/a", "none", "null", "not applicable", "no treatment needed", "no treatment required", "not required"]
+
                 additions = []
-                if chem:
+                if _is_valid_tip(chem):
                     additions.append(f"🧪 **Chemical Treatment**: {chem}")
-                if org:
+                if _is_valid_tip(org):
                     additions.append(f"🌿 **Organic / Bio-Alternative**: {org}")
-                if prev:
+                if _is_valid_tip(prev):
                     additions.append(f"💡 **Preventative Cultural Tip**: {prev}")
 
                 if additions:
