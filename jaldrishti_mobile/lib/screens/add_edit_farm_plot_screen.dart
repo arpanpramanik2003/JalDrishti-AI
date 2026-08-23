@@ -199,42 +199,37 @@ class _AddEditFarmPlotScreenState extends State<AddEditFarmPlotScreen> {
             children: [
               const Icon(LucideIcons.alertTriangle, color: Colors.white, size: 18),
               const SizedBox(width: 10),
-              Expanded(
+              const Expanded(
                 child: Text(
-                  'GPS Pinpoint Required! Tap "Map Pin" to set your field location.',
-                  style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600),
+                  'Action Required: Please tap "Map Pin" to confirm exact plot location coordinates for AI weather calculations.',
+                  style: TextStyle(fontWeight: FontWeight.w600),
                 ),
               ),
             ],
           ),
           backgroundColor: const Color(0xFFEF4444),
+          duration: const Duration(seconds: 4),
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         ),
       );
       return;
     }
 
+    final farmPlotProvider = context.read<FarmPlotProvider>();
     final auth = context.read<AuthProvider>();
     final irrigation = context.read<IrrigationProvider>();
-    final farmPlotProvider = context.read<FarmPlotProvider>();
-
-    final area = double.tryParse(_areaController.text) ?? 2.5;
-    final pumpHp = double.tryParse(_pumpHpController.text) ?? 5.0;
 
     final plotData = FarmPlotModel(
       id: widget.plotToEdit?.id ?? 0,
-      userId: 0,
       name: _nameController.text.trim(),
+      cropId: _selectedCrop,
       locationName: _locationNameController.text.trim(),
       latitude: _latitude,
       longitude: _longitude,
-      cropId: _selectedCrop,
-      sowingDate: _sowingDateController.text.trim(),
-      areaAcres: area,
+      areaAcres: double.tryParse(_areaController.text) ?? 2.5,
+      sowingDate: _sowingDateController.text,
       isPrimary: _isPrimary,
-      pumpHp: pumpHp,
-      pumpFlowLps: 5.0,
+      pumpHp: double.tryParse(_pumpHpController.text) ?? 5.0,
       irrigationMethod: _selectedIrrigationMethod,
       soilType: _selectedSoilType,
     );
@@ -268,6 +263,16 @@ class _AddEditFarmPlotScreenState extends State<AddEditFarmPlotScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scaffoldBg = isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC);
+    final cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
+    final inputBg = isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9);
+    final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
+    final textColor = isDark ? Colors.white : const Color(0xFF0F172A);
+    final subtextColor = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
+    final hintColor = isDark ? const Color(0xFF475569) : const Color(0xFF94A3B8);
+    final primaryColor = isDark ? const Color(0xFF38BDF8) : const Color(0xFF0284C7);
+
     final isEditing = widget.plotToEdit != null;
     final farmPlotProvider = context.watch<FarmPlotProvider>();
     final irrigationProvider = context.watch<IrrigationProvider>();
@@ -277,15 +282,16 @@ class _AddEditFarmPlotScreenState extends State<AddEditFarmPlotScreen> {
         : _fallbackCrops;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
+      backgroundColor: scaffoldBg,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF1E293B),
+        backgroundColor: cardBg,
+        elevation: 0,
         title: Text(
           isEditing ? 'Edit Farm Plot' : 'Add New Farm Plot',
-          style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold),
+          style: GoogleFonts.outfit(color: textColor, fontWeight: FontWeight.bold),
         ),
         leading: IconButton(
-          icon: const Icon(LucideIcons.arrowLeft, color: Colors.white),
+          icon: Icon(LucideIcons.arrowLeft, color: textColor),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -298,7 +304,7 @@ class _AddEditFarmPlotScreenState extends State<AddEditFarmPlotScreen> {
             children: [
               Text(
                 'Plot Information',
-                style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold, color: textColor),
               ),
               const SizedBox(height: 16),
 
@@ -306,19 +312,27 @@ class _AddEditFarmPlotScreenState extends State<AddEditFarmPlotScreen> {
               TextFormField(
                 controller: _nameController,
                 maxLength: 50,
-                style: const TextStyle(color: Colors.white),
+                style: TextStyle(color: textColor),
                 decoration: InputDecoration(
                   labelText: 'Farm Plot Name',
-                  labelStyle: const TextStyle(color: Color(0xFF94A3B8)),
+                  labelStyle: TextStyle(color: subtextColor),
                   hintText: 'e.g. North Paddy Field',
-                  hintStyle: const TextStyle(color: Color(0xFF475569), fontSize: 13),
-                  prefixIcon: const Icon(LucideIcons.sprout, color: Color(0xFF38BDF8)),
+                  hintStyle: TextStyle(color: hintColor, fontSize: 13),
+                  prefixIcon: Icon(LucideIcons.sprout, color: primaryColor),
                   counterText: '',
                   filled: true,
-                  fillColor: const Color(0xFF1E293B),
+                  fillColor: inputBg,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
+                    borderSide: BorderSide(color: borderColor),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: borderColor),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: primaryColor, width: 1.5),
                   ),
                 ),
                 validator: (val) => (val == null || val.trim().isEmpty) ? 'Please enter plot name' : null,
@@ -329,19 +343,27 @@ class _AddEditFarmPlotScreenState extends State<AddEditFarmPlotScreen> {
               TextFormField(
                 controller: _locationNameController,
                 maxLength: 100,
-                style: const TextStyle(color: Colors.white),
+                style: TextStyle(color: textColor),
                 decoration: InputDecoration(
                   labelText: 'Village / District / Location Name',
-                  labelStyle: const TextStyle(color: Color(0xFF94A3B8)),
+                  labelStyle: TextStyle(color: subtextColor),
                   hintText: 'e.g. Burdwan, West Bengal or Village Name',
-                  hintStyle: const TextStyle(color: Color(0xFF475569), fontSize: 13),
-                  prefixIcon: const Icon(LucideIcons.mapPin, color: Color(0xFF38BDF8)),
+                  hintStyle: TextStyle(color: hintColor, fontSize: 13),
+                  prefixIcon: Icon(LucideIcons.mapPin, color: primaryColor),
                   counterText: '',
                   filled: true,
-                  fillColor: const Color(0xFF1E293B),
+                  fillColor: inputBg,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
+                    borderSide: BorderSide(color: borderColor),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: borderColor),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: primaryColor, width: 1.5),
                   ),
                 ),
                 validator: (val) =>
@@ -354,10 +376,10 @@ class _AddEditFarmPlotScreenState extends State<AddEditFarmPlotScreen> {
                 duration: const Duration(milliseconds: 250),
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1E293B),
+                  color: cardBg,
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                    color: _gpsError ? const Color(0xFFEF4444) : const Color(0xFF334155),
+                    color: _gpsError ? const Color(0xFFEF4444) : borderColor,
                     width: _gpsError ? 1.8 : 1.0,
                   ),
                   boxShadow: _gpsError
@@ -367,7 +389,13 @@ class _AddEditFarmPlotScreenState extends State<AddEditFarmPlotScreen> {
                             blurRadius: 10,
                           )
                         ]
-                      : null,
+                      : [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
+                            blurRadius: 10,
+                            offset: const Offset(0, 3),
+                          ),
+                        ],
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -386,7 +414,7 @@ class _AddEditFarmPlotScreenState extends State<AddEditFarmPlotScreen> {
                                       style: GoogleFonts.outfit(
                                         fontSize: 14,
                                         fontWeight: FontWeight.bold,
-                                        color: _gpsError ? const Color(0xFFEF4444) : const Color(0xFF94A3B8),
+                                        color: _gpsError ? const Color(0xFFEF4444) : subtextColor,
                                       ),
                                       overflow: TextOverflow.ellipsis,
                                     ),
@@ -420,15 +448,15 @@ class _AddEditFarmPlotScreenState extends State<AddEditFarmPlotScreen> {
                               _isLocating
                                   ? Row(
                                       children: [
-                                        const SizedBox(
+                                        SizedBox(
                                           width: 14,
                                           height: 14,
-                                          child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF38BDF8)),
+                                          child: CircularProgressIndicator(strokeWidth: 2, color: primaryColor),
                                         ),
                                         const SizedBox(width: 8),
                                         Text(
                                           'Acquiring live GPS...',
-                                          style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFF38BDF8)),
+                                          style: GoogleFonts.inter(fontSize: 12, color: primaryColor),
                                         ),
                                       ],
                                     )
@@ -437,7 +465,7 @@ class _AddEditFarmPlotScreenState extends State<AddEditFarmPlotScreen> {
                                       style: GoogleFonts.outfit(
                                         fontSize: 15,
                                         fontWeight: FontWeight.bold,
-                                        color: const Color(0xFF38BDF8),
+                                        color: primaryColor,
                                       ),
                                     ),
                             ],
@@ -470,20 +498,28 @@ class _AddEditFarmPlotScreenState extends State<AddEditFarmPlotScreen> {
               // Crop Dropdown
               Text(
                 'Select Crop',
-                style: GoogleFonts.outfit(color: const Color(0xFF94A3B8), fontSize: 13),
+                style: GoogleFonts.outfit(color: subtextColor, fontSize: 13),
               ),
               const SizedBox(height: 6),
               DropdownButtonFormField<String>(
                 value: _selectedCrop,
                 isExpanded: true,
-                dropdownColor: const Color(0xFF1E293B),
-                style: GoogleFonts.outfit(color: Colors.white, fontSize: 15),
+                dropdownColor: cardBg,
+                style: GoogleFonts.outfit(color: textColor, fontSize: 15),
                 decoration: InputDecoration(
                   filled: true,
-                  fillColor: const Color(0xFF1E293B),
+                  fillColor: inputBg,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
+                    borderSide: BorderSide(color: borderColor),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: borderColor),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: primaryColor, width: 1.5),
                   ),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                 ),
@@ -509,16 +545,24 @@ class _AddEditFarmPlotScreenState extends State<AddEditFarmPlotScreen> {
                     child: TextFormField(
                       controller: _sowingDateController,
                       readOnly: true,
-                      style: const TextStyle(color: Colors.white),
+                      style: TextStyle(color: textColor),
                       decoration: InputDecoration(
                         labelText: 'Sowing Date',
-                        labelStyle: const TextStyle(color: Color(0xFF94A3B8)),
-                        prefixIcon: const Icon(LucideIcons.calendar, color: Color(0xFF38BDF8)),
+                        labelStyle: TextStyle(color: subtextColor),
+                        prefixIcon: Icon(LucideIcons.calendar, color: primaryColor),
                         filled: true,
-                        fillColor: const Color(0xFF1E293B),
+                        fillColor: inputBg,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide.none,
+                          borderSide: BorderSide(color: borderColor),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: borderColor),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: primaryColor, width: 1.5),
                         ),
                       ),
                       onTap: () async {
@@ -546,17 +590,25 @@ class _AddEditFarmPlotScreenState extends State<AddEditFarmPlotScreen> {
                       inputFormatters: [
                         FilteringTextInputFormatter.allow(RegExp(r'[0-9\.]')),
                       ],
-                      style: const TextStyle(color: Colors.white),
+                      style: TextStyle(color: textColor),
                       decoration: InputDecoration(
                         labelText: 'Area (Acres)',
-                        labelStyle: const TextStyle(color: Color(0xFF94A3B8)),
-                        prefixIcon: const Icon(LucideIcons.ruler, color: Color(0xFF38BDF8)),
+                        labelStyle: TextStyle(color: subtextColor),
+                        prefixIcon: Icon(LucideIcons.ruler, color: primaryColor),
                         counterText: '',
                         filled: true,
-                        fillColor: const Color(0xFF1E293B),
+                        fillColor: inputBg,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide.none,
+                          borderSide: BorderSide(color: borderColor),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: borderColor),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: primaryColor, width: 1.5),
                         ),
                       ),
                       validator: (val) {
@@ -574,23 +626,25 @@ class _AddEditFarmPlotScreenState extends State<AddEditFarmPlotScreen> {
               // Practical Production Controls: Irrigation Method & Soil Type & Pump HP
               Text(
                 'Irrigation & Soil Engineering Settings',
-                style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.bold, color: const Color(0xFF38BDF8)),
+                style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.bold, color: primaryColor),
               ),
               const SizedBox(height: 12),
 
               // Irrigation Method Dropdown
-              Text('Irrigation System Method', style: GoogleFonts.inter(color: const Color(0xFF94A3B8), fontSize: 12)),
+              Text('Irrigation System Method', style: GoogleFonts.inter(color: subtextColor, fontSize: 12)),
               const SizedBox(height: 4),
               DropdownButtonFormField<String>(
                 value: _selectedIrrigationMethod,
                 isExpanded: true,
-                dropdownColor: const Color(0xFF1E293B),
-                style: GoogleFonts.outfit(color: Colors.white, fontSize: 14),
+                dropdownColor: cardBg,
+                style: GoogleFonts.outfit(color: textColor, fontSize: 14),
                 decoration: InputDecoration(
                   filled: true,
-                  fillColor: const Color(0xFF1E293B),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                  prefixIcon: const Icon(LucideIcons.droplets, color: Color(0xFF38BDF8)),
+                  fillColor: inputBg,
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: borderColor)),
+                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: borderColor)),
+                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: primaryColor, width: 1.5)),
+                  prefixIcon: Icon(LucideIcons.droplets, color: primaryColor),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                 ),
                 items: const [
@@ -614,18 +668,20 @@ class _AddEditFarmPlotScreenState extends State<AddEditFarmPlotScreen> {
               const SizedBox(height: 16),
 
               // Soil Texture Dropdown
-              Text('Soil Texture Preset', style: GoogleFonts.inter(color: const Color(0xFF94A3B8), fontSize: 12)),
+              Text('Soil Texture Preset', style: GoogleFonts.inter(color: subtextColor, fontSize: 12)),
               const SizedBox(height: 4),
               DropdownButtonFormField<String>(
                 value: _selectedSoilType,
                 isExpanded: true,
-                dropdownColor: const Color(0xFF1E293B),
-                style: GoogleFonts.outfit(color: Colors.white, fontSize: 14),
+                dropdownColor: cardBg,
+                style: GoogleFonts.outfit(color: textColor, fontSize: 14),
                 decoration: InputDecoration(
                   filled: true,
-                  fillColor: const Color(0xFF1E293B),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                  prefixIcon: const Icon(LucideIcons.layers, color: Color(0xFF38BDF8)),
+                  fillColor: inputBg,
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: borderColor)),
+                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: borderColor)),
+                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: primaryColor, width: 1.5)),
+                  prefixIcon: Icon(LucideIcons.layers, color: primaryColor),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                 ),
                 items: const [
@@ -664,17 +720,19 @@ class _AddEditFarmPlotScreenState extends State<AddEditFarmPlotScreen> {
                 inputFormatters: [
                   FilteringTextInputFormatter.allow(RegExp(r'[0-9\.]')),
                 ],
-                style: const TextStyle(color: Colors.white),
+                style: TextStyle(color: textColor),
                 decoration: InputDecoration(
                   counterText: '',
                   labelText: 'Water Pump Horsepower (HP)',
-                  labelStyle: const TextStyle(color: Color(0xFF94A3B8)),
-                  prefixIcon: const Icon(LucideIcons.zap, color: Color(0xFF38BDF8)),
+                  labelStyle: TextStyle(color: subtextColor),
+                  prefixIcon: Icon(LucideIcons.zap, color: primaryColor),
                   suffixText: 'HP',
-                  suffixStyle: const TextStyle(color: Color(0xFF38BDF8), fontWeight: FontWeight.bold),
+                  suffixStyle: TextStyle(color: primaryColor, fontWeight: FontWeight.bold),
                   filled: true,
-                  fillColor: const Color(0xFF1E293B),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                  fillColor: inputBg,
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: borderColor)),
+                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: borderColor)),
+                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: primaryColor, width: 1.5)),
                 ),
               ),
               const SizedBox(height: 20),
@@ -683,9 +741,16 @@ class _AddEditFarmPlotScreenState extends State<AddEditFarmPlotScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1E293B),
+                  color: cardBg,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFF334155)),
+                  border: Border.all(color: borderColor),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
+                      blurRadius: 10,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
                 ),
                 child: Row(
                   children: [
@@ -695,12 +760,12 @@ class _AddEditFarmPlotScreenState extends State<AddEditFarmPlotScreen> {
                         children: [
                           Text(
                             'Set as Primary Farm Plot',
-                            style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                            style: GoogleFonts.outfit(color: textColor, fontWeight: FontWeight.bold, fontSize: 14),
                           ),
                           const SizedBox(height: 2),
                           Text(
                             'Default plot loaded on app dashboard launch',
-                            style: GoogleFonts.inter(color: const Color(0xFF94A3B8), fontSize: 11),
+                            style: GoogleFonts.inter(color: subtextColor, fontSize: 11),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -710,7 +775,7 @@ class _AddEditFarmPlotScreenState extends State<AddEditFarmPlotScreen> {
                     const SizedBox(width: 8),
                     Switch(
                       value: _isPrimary,
-                      activeThumbColor: const Color(0xFF38BDF8),
+                      activeThumbColor: primaryColor,
                       onChanged: (val) => setState(() => _isPrimary = val),
                     ),
                   ],

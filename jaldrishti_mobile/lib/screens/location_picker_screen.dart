@@ -105,22 +105,30 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scaffoldBg = isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC);
+    final cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
+    final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
+    final textColor = isDark ? Colors.white : const Color(0xFF0F172A);
+    final subtextColor = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
+    final primaryColor = isDark ? const Color(0xFF38BDF8) : const Color(0xFF0284C7);
+
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
+      backgroundColor: scaffoldBg,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF1E293B),
+        backgroundColor: cardBg,
         elevation: 0,
         title: Text(
           'Pick GPS Location on Map',
-          style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+          style: GoogleFonts.outfit(color: textColor, fontWeight: FontWeight.bold, fontSize: 18),
         ),
         leading: IconButton(
-          icon: const Icon(LucideIcons.arrowLeft, color: Colors.white),
+          icon: Icon(LucideIcons.arrowLeft, color: textColor),
           onPressed: () => Navigator.pop(context),
         ),
         actions: [
           IconButton(
-            icon: const Icon(LucideIcons.locateFixed, color: Color(0xFF38BDF8)),
+            icon: Icon(LucideIcons.locateFixed, color: primaryColor),
             onPressed: _getCurrentLocation,
             tooltip: 'Get Current GPS Location',
           ),
@@ -168,24 +176,25 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1E293B),
+                  color: cardBg,
                   borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: borderColor),
                   boxShadow: [
-                    BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 10),
+                    BoxShadow(color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.1), blurRadius: 10),
                   ],
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const SizedBox(
+                    SizedBox(
                       width: 20,
                       height: 20,
-                      child: CircularProgressIndicator(color: Color(0xFF38BDF8), strokeWidth: 2),
+                      child: CircularProgressIndicator(color: primaryColor, strokeWidth: 2),
                     ),
                     const SizedBox(width: 14),
                     Text(
                       'Acquiring High-Precision GPS...',
-                      style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w500),
+                      style: GoogleFonts.inter(color: textColor, fontWeight: FontWeight.w500),
                     ),
                   ],
                 ),
@@ -200,11 +209,15 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
             child: Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: const Color(0xFF1E293B),
+                color: cardBg,
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-                border: Border.all(color: const Color(0xFF334155)),
+                border: Border.all(color: borderColor),
                 boxShadow: [
-                  BoxShadow(color: Colors.black.withOpacity(0.4), blurRadius: 15, offset: const Offset(0, -4)),
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: isDark ? 0.4 : 0.08),
+                    blurRadius: 15,
+                    offset: const Offset(0, -4),
+                  ),
                 ],
               ),
               child: Column(
@@ -222,7 +235,7 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
                             style: GoogleFonts.outfit(
                               fontWeight: FontWeight.bold,
                               fontSize: 14,
-                              color: const Color(0xFF94A3B8),
+                              color: subtextColor,
                             ),
                           ),
                           const SizedBox(height: 2),
@@ -231,7 +244,7 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
                             style: GoogleFonts.outfit(
                               fontWeight: FontWeight.bold,
                               fontSize: 18,
-                              color: const Color(0xFF38BDF8),
+                              color: primaryColor,
                             ),
                           ),
                         ],
@@ -254,7 +267,7 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
                   const SizedBox(height: 16),
                   Text(
                     '💡 Tap anywhere on the map to move the marker pin to your exact farm location.',
-                    style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFF94A3B8)),
+                    style: GoogleFonts.inter(fontSize: 12, color: subtextColor),
                   ),
                   const SizedBox(height: 16),
 
