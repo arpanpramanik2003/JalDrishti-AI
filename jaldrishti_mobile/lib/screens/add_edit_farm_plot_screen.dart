@@ -221,6 +221,7 @@ class _AddEditFarmPlotScreenState extends State<AddEditFarmPlotScreen> {
 
     final plotData = FarmPlotModel(
       id: widget.plotToEdit?.id ?? 0,
+      userId: widget.plotToEdit?.userId ?? auth.user?.id ?? 0,
       name: _nameController.text.trim(),
       cropId: _selectedCrop,
       locationName: _locationNameController.text.trim(),
@@ -502,7 +503,7 @@ class _AddEditFarmPlotScreenState extends State<AddEditFarmPlotScreen> {
               ),
               const SizedBox(height: 6),
               DropdownButtonFormField<String>(
-                value: _selectedCrop,
+                initialValue: _selectedCrop,
                 isExpanded: true,
                 dropdownColor: cardBg,
                 style: GoogleFonts.outfit(color: textColor, fontSize: 15),
@@ -634,7 +635,7 @@ class _AddEditFarmPlotScreenState extends State<AddEditFarmPlotScreen> {
               Text('Irrigation System Method', style: GoogleFonts.inter(color: subtextColor, fontSize: 12)),
               const SizedBox(height: 4),
               DropdownButtonFormField<String>(
-                value: _selectedIrrigationMethod,
+                initialValue: _selectedIrrigationMethod,
                 isExpanded: true,
                 dropdownColor: cardBg,
                 style: GoogleFonts.outfit(color: textColor, fontSize: 14),
@@ -671,7 +672,7 @@ class _AddEditFarmPlotScreenState extends State<AddEditFarmPlotScreen> {
               Text('Soil Texture Preset', style: GoogleFonts.inter(color: subtextColor, fontSize: 12)),
               const SizedBox(height: 4),
               DropdownButtonFormField<String>(
-                value: _selectedSoilType,
+                initialValue: _selectedSoilType,
                 isExpanded: true,
                 dropdownColor: cardBg,
                 style: GoogleFonts.outfit(color: textColor, fontSize: 14),
