@@ -413,66 +413,238 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
   void _showPlotSelectorModal(BuildContext context, FarmPlotProvider plotProvider, IrrigationProvider irrigation) {
     showModalBottomSheet(
       context: context,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
       builder: (ctx) {
         final isDark = Theme.of(ctx).brightness == Brightness.dark;
         final cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
         final textColor = isDark ? Colors.white : const Color(0xFF0F172A);
         final subtextColor = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
+        final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
+        final maxHeight = MediaQuery.of(ctx).size.height * 0.80;
 
         return Container(
-          padding: const EdgeInsets.all(20),
+          constraints: BoxConstraints(maxHeight: maxHeight),
           decoration: BoxDecoration(
             color: cardBg,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text('Select Farm Plot & Crop', style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold, color: textColor)),
-                  IconButton(onPressed: () => Navigator.pop(ctx), icon: Icon(LucideIcons.x, color: textColor)),
-                ],
-              ),
-              const SizedBox(height: 12),
-              if (plotProvider.plots.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 20),
-                  child: Text('No farm plots found. Tap + to add one.', style: GoogleFonts.inter(color: subtextColor)),
-                )
-              else
-                ...plotProvider.plots.map((p) => ListTile(
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  leading: const Icon(LucideIcons.mapPin, color: Color(0xFF0284C7)),
-                  title: Text(p.name, style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: textColor)),
-                  subtitle: Text('${p.cropId.replaceAll('_', ' ').toUpperCase()} • ${p.areaAcres} Acres • ${p.pumpHp} HP', style: GoogleFonts.inter(fontSize: 11, color: subtextColor)),
-                  trailing: p.id == plotProvider.selectedPlot?.id ? const Icon(LucideIcons.checkCircle2, color: Color(0xFF10B981)) : null,
-                  onTap: () {
-                    plotProvider.selectPlot(p, irrigation);
-                    Navigator.pop(ctx);
-                  },
-                )),
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: () {
-                    Navigator.pop(ctx);
-                    Navigator.push(context, MaterialPageRoute(builder: (_) => const AddEditFarmPlotScreen()));
-                  },
-                  icon: const Icon(LucideIcons.plus, size: 16),
-                  label: Text('Create New Farm Plot', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xFF0284C7),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                ),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.1),
+                blurRadius: 20,
+                offset: const Offset(0, -4),
               ),
             ],
+          ),
+          child: SafeArea(
+            top: false,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Modal Drag Handle
+                const SizedBox(height: 12),
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: subtextColor.withValues(alpha: 0.3),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+
+                // Header
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF0284C7).withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(LucideIcons.mapPin, color: Color(0xFF0284C7), size: 18),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Select Farm Plot & Crop',
+                              style: GoogleFonts.outfit(
+                                fontSize: 17,
+                                fontWeight: FontWeight.bold,
+                                color: textColor,
+                              ),
+                            ),
+                            Text(
+                              '${plotProvider.plots.length} ${plotProvider.plots.length == 1 ? "Plot" : "Plots"} available',
+                              style: GoogleFonts.inter(fontSize: 11, color: subtextColor),
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => Navigator.pop(ctx),
+                        icon: Icon(LucideIcons.x, color: textColor, size: 20),
+                        tooltip: 'Close',
+                      ),
+                    ],
+                  ),
+                ),
+
+                const Divider(height: 1),
+
+                // Scrollable Plots List
+                if (plotProvider.plots.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 24),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(LucideIcons.sprout, size: 40, color: subtextColor.withValues(alpha: 0.4)),
+                        const SizedBox(height: 12),
+                        Text(
+                          'No farm plots found',
+                          style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.bold, color: textColor),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Tap the button below to add your first plot and crop.',
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.inter(fontSize: 12, color: subtextColor),
+                        ),
+                      ],
+                    ),
+                  )
+                else
+                  Flexible(
+                    child: ListView.separated(
+                      shrinkWrap: true,
+                      physics: const BouncingScrollPhysics(),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      itemCount: plotProvider.plots.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 8),
+                      itemBuilder: (context, index) {
+                        final p = plotProvider.plots[index];
+                        final isSelected = p.id == plotProvider.selectedPlot?.id;
+
+                        return Material(
+                          color: isSelected
+                              ? const Color(0xFF0284C7).withValues(alpha: 0.1)
+                              : isDark
+                                  ? const Color(0xFF0F172A).withValues(alpha: 0.5)
+                                  : const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                            side: BorderSide(
+                              color: isSelected
+                                  ? const Color(0xFF0284C7).withValues(alpha: 0.6)
+                                  : borderColor.withValues(alpha: 0.6),
+                              width: isSelected ? 1.5 : 1.0,
+                            ),
+                          ),
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(14),
+                            onTap: () {
+                              plotProvider.selectPlot(p, irrigation);
+                              Navigator.pop(ctx);
+                            },
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: isSelected
+                                          ? const Color(0xFF0284C7).withValues(alpha: 0.2)
+                                          : (isDark ? const Color(0xFF1E293B) : Colors.white),
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: Icon(
+                                      LucideIcons.sprout,
+                                      color: isSelected ? const Color(0xFF0284C7) : subtextColor,
+                                      size: 18,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          p.name,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: GoogleFonts.outfit(
+                                            fontSize: 15,
+                                            fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                                            color: textColor,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          '${p.cropId.replaceAll('_', ' ').toUpperCase()} • ${p.areaAcres} Acres • ${p.pumpHp} HP',
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: GoogleFonts.inter(fontSize: 11, color: subtextColor),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  if (isSelected)
+                                    const Padding(
+                                      padding: EdgeInsets.only(left: 8),
+                                      child: Icon(
+                                        LucideIcons.checkCircle2,
+                                        color: Color(0xFF10B981),
+                                        size: 20,
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+
+                // Bottom Action Button (Always visible & within Safe Area)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const AddEditFarmPlotScreen()),
+                        );
+                      },
+                      icon: const Icon(LucideIcons.plus, size: 16),
+                      label: Text(
+                        'Create New Farm Plot',
+                        style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 14),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFF0284C7),
+                        side: const BorderSide(color: Color(0xFF0284C7), width: 1.2),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         );
       },
