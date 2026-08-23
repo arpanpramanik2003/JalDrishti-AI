@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:intl/intl.dart';
 import 'package:lucide_icons/lucide_icons.dart';
-import 'package:provider/provider.dart';
-import '../../core/services/api_service.dart';
 import '../../models/farm_plot_model.dart';
-import '../../providers/auth_provider.dart';
+import '../../widgets/log_irrigation_modal.dart';
 
 class HistoryLogsTab extends StatefulWidget {
   final FarmPlotModel? selectedPlot;
@@ -38,109 +35,22 @@ class HistoryLogsTab extends StatefulWidget {
 }
 
 class _HistoryLogsTabState extends State<HistoryLogsTab> {
-  void _showAddLogDialog(BuildContext context) {
-    if (widget.selectedPlot == null) return;
+  void _openLogModal(BuildContext context) {
+    if (widget.selectedPlot == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please select a farm plot first to log irrigation.'),
+          backgroundColor: Colors.orangeAccent,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
 
-    final depthController = TextEditingController(text: "15.0");
-    final notesController = TextEditingController(text: "Pump Irrigation Session");
-    String selectedDate = DateFormat('yyyy-MM-dd').format(DateTime.now());
-    bool isSubmitting = false;
-
-    showDialog(
+    showLogIrrigationModal(
       context: context,
-      builder: (ctx) {
-        return StatefulBuilder(
-          builder: (dialogCtx, setDialogState) {
-            return AlertDialog(
-              backgroundColor: widget.cardBg,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-              title: Row(
-                children: [
-                  Icon(LucideIcons.droplet, color: widget.primaryColor, size: 22),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Log Water Run',
-                    style: GoogleFonts.outfit(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: widget.textColor,
-                    ),
-                  ),
-                ],
-              ),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Applied Water Depth (mm)', style: GoogleFonts.inter(fontSize: 12, color: widget.subtextColor)),
-                  const SizedBox(height: 4),
-                  TextField(
-                    controller: depthController,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    style: GoogleFonts.inter(color: widget.textColor),
-                    decoration: InputDecoration(
-                      hintText: 'e.g. 15.0',
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Text('Notes / Equipment', style: GoogleFonts.inter(fontSize: 12, color: widget.subtextColor)),
-                  const SizedBox(height: 4),
-                  TextField(
-                    controller: notesController,
-                    style: GoogleFonts.inter(color: widget.textColor),
-                    decoration: InputDecoration(
-                      hintText: 'e.g. Drip 2.5 hours',
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                    ),
-                  ),
-                ],
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(dialogCtx),
-                  child: Text('Cancel', style: GoogleFonts.inter(color: widget.subtextColor)),
-                ),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: widget.primaryColor,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  ),
-                  onPressed: isSubmitting
-                      ? null
-                      : () async {
-                          final depth = double.tryParse(depthController.text) ?? 10.0;
-                          setDialogState(() => isSubmitting = true);
-                          try {
-                            final auth = Provider.of<AuthProvider>(context, listen: false);
-                            if (auth.token != null) {
-                              await ApiService.logIrrigationEvent(
-                                payload: {
-                                  'farm_plot_id': widget.selectedPlot!.id,
-                                  'applied_mm': depth,
-                                  'applied_date': selectedDate,
-                                  'notes': notesController.text,
-                                },
-                                token: auth.token!,
-                              );
-                              if (dialogCtx.mounted) Navigator.pop(dialogCtx);
-                              widget.onRefreshRequested();
-                            }
-                          } catch (_) {
-                            if (dialogCtx.mounted) Navigator.pop(dialogCtx);
-                          }
-                        },
-                  child: isSubmitting
-                      ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                      : Text('Save Log', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: Colors.white)),
-                ),
-              ],
-            );
-          },
-        );
-      },
+      plot: widget.selectedPlot!,
+      onLogSuccess: widget.onRefreshRequested,
     );
   }
 
@@ -154,30 +64,46 @@ class _HistoryLogsTabState extends State<HistoryLogsTab> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              '📋 Irrigation Run History',
-              style: GoogleFonts.outfit(
-                fontSize: 15,
-                fontWeight: FontWeight.bold,
-                color: widget.textColor,
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '📋 Irrigation Run History',
+                    style: GoogleFonts.outfit(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: widget.textColor,
+                    ),
+                  ),
+                  Text(
+                    'Recorded pump runs for ${widget.selectedPlot?.name ?? "selected plot"}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.inter(fontSize: 11, color: widget.subtextColor),
+                  ),
+                ],
               ),
             ),
+            const SizedBox(width: 8),
             ElevatedButton.icon(
               style: ElevatedButton.styleFrom(
-                backgroundColor: widget.primaryColor,
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                backgroundColor: const Color(0xFF0284C7),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                elevation: 2,
               ),
-              onPressed: () => _showAddLogDialog(context),
-              icon: const Icon(LucideIcons.plus, size: 14, color: Colors.white),
+              onPressed: () => _openLogModal(context),
+              icon: const Icon(LucideIcons.plusCircle, size: 16, color: Colors.white),
               label: Text(
                 'Log Water Run',
-                style: GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
+                style: GoogleFonts.outfit(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white),
               ),
             ),
           ],
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 12),
 
         Container(
           padding: const EdgeInsets.all(16),
@@ -185,31 +111,57 @@ class _HistoryLogsTabState extends State<HistoryLogsTab> {
             color: widget.cardBg,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(color: widget.borderColor),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: widget.isDark ? 0.2 : 0.04),
+                blurRadius: 10,
+                offset: const Offset(0, 3),
+              ),
+            ],
           ),
           child: widget.isLoading
               ? const Center(
                   child: Padding(
-                    padding: EdgeInsets.all(24.0),
+                    padding: EdgeInsets.all(28.0),
                     child: CircularProgressIndicator(strokeWidth: 2),
                   ),
                 )
               : widget.historyLogs.isEmpty
                   ? Center(
                       child: Padding(
-                        padding: const EdgeInsets.all(24.0),
+                        padding: const EdgeInsets.all(28.0),
                         child: Column(
                           children: [
-                            Icon(LucideIcons.history, size: 36, color: widget.subtextColor),
-                            const SizedBox(height: 8),
+                            Icon(LucideIcons.history, size: 40, color: widget.subtextColor.withValues(alpha: 0.5)),
+                            const SizedBox(height: 10),
                             Text(
-                              'No logged pump sessions found for this plot.',
-                              style: GoogleFonts.inter(color: widget.subtextColor, fontSize: 13),
+                              'No logged pump sessions yet',
+                              style: GoogleFonts.outfit(
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                                color: widget.textColor,
+                              ),
                             ),
-                            const SizedBox(height: 12),
-                            OutlinedButton.icon(
-                              onPressed: () => _showAddLogDialog(context),
-                              icon: Icon(LucideIcons.plus, size: 14, color: widget.primaryColor),
-                              label: Text('Log First Run', style: GoogleFonts.outfit(color: widget.primaryColor)),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Track irrigation duration to compute accurate water balance and soil hydration.',
+                              textAlign: TextAlign.center,
+                              style: GoogleFonts.inter(color: widget.subtextColor, fontSize: 12),
+                            ),
+                            const SizedBox(height: 16),
+                            ElevatedButton.icon(
+                              onPressed: () => _openLogModal(context),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF0284C7),
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              ),
+                              icon: const Icon(LucideIcons.plusCircle, size: 16, color: Colors.white),
+                              label: Text(
+                                'Log First Water Run',
+                                style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 13),
+                              ),
                             ),
                           ],
                         ),
@@ -232,7 +184,7 @@ class _HistoryLogsTabState extends State<HistoryLogsTab> {
                           decoration: BoxDecoration(
                             color: widget.isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: widget.borderColor),
+                            border: Border.all(color: widget.borderColor.withValues(alpha: 0.7)),
                           ),
                           child: Row(
                             children: [
