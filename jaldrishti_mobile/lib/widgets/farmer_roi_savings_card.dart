@@ -91,10 +91,10 @@ class FarmerRoiSavingsCard extends StatelessWidget {
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(10),
+                padding: const EdgeInsets.all(9),
                 decoration: BoxDecoration(
                   color: const Color(0xFF10B981).withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(10),
                 ),
                 child: const Icon(LucideIcons.trendingUp, color: Color(0xFF10B981), size: 20),
               ),
@@ -104,60 +104,85 @@ class FarmerRoiSavingsCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'FARMER IMPACT & ROI TRACKER',
+                      'FARMER IMPACT & ROI',
                       style: GoogleFonts.outfit(
-                        fontSize: 13,
+                        fontSize: 14,
                         fontWeight: FontWeight.bold,
                         color: const Color(0xFF10B981),
-                        letterSpacing: 1.1,
+                        letterSpacing: 1.0,
                       ),
                     ),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: 1),
                     Text(
-                      'Tap any tile below for detailed insights',
+                      'Cumulative resource savings & cost optimization',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: GoogleFonts.inter(fontSize: 11, color: subtextColor),
                     ),
                   ],
                 ),
               ),
+            ],
+          ),
+          const SizedBox(height: 10),
+
+          // Cohesive Benchmark & Status Badges Row
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
               if (stateCode != null || stateName != null)
                 Container(
-                  margin: const EdgeInsets.only(right: 6),
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
                   decoration: BoxDecoration(
                     color: const Color(0xFF10B981).withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(6),
                     border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.3)),
                   ),
-                  child: Text(
-                    '${stateCode ?? "IND"} Rates',
-                    style: GoogleFonts.inter(
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                      color: const Color(0xFF10B981),
-                    ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(LucideIcons.mapPin, size: 11, color: Color(0xFF10B981)),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${stateName ?? stateCode ?? "Regional"} Tariff (~₹${tariffRateInrHr?.toInt() ?? 80}/hr)',
+                        style: GoogleFonts.inter(
+                          fontSize: 9.5,
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xFF10B981),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               if (skippedRunsCount > 0)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
                   decoration: BoxDecoration(
                     color: const Color(0xFF0284C7).withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(6),
                     border: Border.all(color: const Color(0xFF0284C7).withValues(alpha: 0.3)),
                   ),
-                  child: Text(
-                    '$skippedRunsCount Runs Saved',
-                    style: GoogleFonts.inter(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: const Color(0xFF38BDF8),
-                    ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(LucideIcons.shieldCheck, size: 11, color: Color(0xFF38BDF8)),
+                      const SizedBox(width: 4),
+                      Text(
+                        '$skippedRunsCount Over-Irrigation${skippedRunsCount > 1 ? "s" : ""} Prevented',
+                        style: GoogleFonts.inter(
+                          fontSize: 9.5,
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xFF38BDF8),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
 
           // 2x2 Metric Grid
           Row(

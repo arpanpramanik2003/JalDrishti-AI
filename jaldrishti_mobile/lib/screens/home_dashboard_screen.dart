@@ -539,7 +539,6 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                               : isDark
                                   ? const Color(0xFF0F172A).withValues(alpha: 0.5)
                                   : const Color(0xFFF8FAFC),
-                          borderRadius: BorderRadius.circular(14),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(14),
                             side: BorderSide(
