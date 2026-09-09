@@ -103,7 +103,7 @@ graph TD
     subgraph AIEngine ["JalSathi AI Pipeline (100% Groq-Native)"]
         TRANS["Fast Indic Query Translator<br/>(Sub-150ms Groq Hop)"]
         CHROMA["ChromaDB Vector Store<br/>(all-MiniLM-L6-v2 Embeddings)"]
-        CASCADE["3-Tier Groq Fallback Cascade<br/>(Primary -> Fast -> Local PoP)"]
+        CASCADE["3-Tier Groq Fallback Cascade<br/>(Primary → Fast → Local PoP)"]
         GUARD["Active Ingredient Safety Guardrail"]
         
         ROUTERS --> TRANS
@@ -123,7 +123,7 @@ graph TD
         THREADPOOL <-->|SQLAlchemy ORM| DB
         ROUTERS <-->|HTTPX Async| METEO
         ROUTERS <-->|HTTPX Async| SOIL
-        ROUTERS -->|asyncio.Semaphore(20)| FCM
+        ROUTERS -->|"asyncio.Semaphore (20)"| FCM
     end
 ```
 
