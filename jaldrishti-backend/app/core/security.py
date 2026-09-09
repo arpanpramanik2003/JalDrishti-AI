@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Optional, Dict, Any
 import jwt
 import bcrypt
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Header
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from app.db.database import get_db
@@ -19,11 +19,34 @@ if not SECRET_KEY:
         "The application cannot start without a secure secret key."
     )
 
+ADMIN_KEY = settings.ADMIN_API_KEY or os.getenv("ADMIN_API_KEY", "")
+if not ADMIN_KEY:
+    raise ValueError(
+        "CRITICAL SECURITY ERROR: ADMIN_API_KEY environment variable is not set! "
+        "The application cannot start without a secure administrative key."
+    )
+
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 # 1 hour access token
 REFRESH_TOKEN_EXPIRE_DAYS = 30    # 30 day refresh token
 
 security_scheme = HTTPBearer()
+
+
+def require_admin_api_key(
+    x_admin_api_key: Optional[str] = Header(None, alias="X-Admin-API-Key")
+) -> str:
+    """
+    Dependency that validates the administrative API key header (X-Admin-API-Key).
+    Rejects unauthorized access with HTTP 403 Forbidden.
+    """
+    if not x_admin_api_key or x_admin_api_key != settings.ADMIN_API_KEY:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Forbidden: Invalid or missing administrative API key header (X-Admin-API-Key)"
+        )
+    return x_admin_api_key
+
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     try:

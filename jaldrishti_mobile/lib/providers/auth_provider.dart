@@ -25,7 +25,23 @@ class AuthProvider extends ChangeNotifier {
   String? get refreshToken => _refreshToken;
 
   AuthProvider() {
+    _registerApiCallbacks();
     _checkExistingToken();
+  }
+
+  void _registerApiCallbacks() {
+    ApiService.onTokenRefreshNeeded = _silentRefreshForInterceptor;
+    ApiService.onForceLogout = _handleForcedLogout;
+  }
+
+  Future<String?> _silentRefreshForInterceptor() async {
+    final success = await refreshSession();
+    return success ? _token : null;
+  }
+
+  Future<void> _handleForcedLogout() async {
+    await _clearSecureTokens();
+    notifyListeners();
   }
 
   // Check stored secure JWT token on app boot

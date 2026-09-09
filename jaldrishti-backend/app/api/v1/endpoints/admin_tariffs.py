@@ -1,25 +1,24 @@
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException, Header
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.db.database import get_db
 from app.models.regional_tariff import RegionalTariff
 from app.schemas.regional_tariff_schema import RegionalTariffResponse, RegionalTariffCreateUpdate
 from app.services.regional_tariff_service import RegionalTariffService
 from app.services.cache_service import CacheService
-from app.core.config import settings
+from app.core.security import require_admin_api_key
 
 router = APIRouter()
 
 
-def verify_admin_access(x_admin_key: str = Header(None, alias="X-Admin-API-Key")):
-    if not x_admin_key or x_admin_key != settings.ADMIN_API_KEY:
-        raise HTTPException(status_code=403, detail="Forbidden: Valid Admin API key required.")
-
-
 @router.get("", response_model=List[RegionalTariffResponse])
-def list_all_regional_tariffs(db: Session = Depends(get_db)):
+def list_all_regional_tariffs(
+    db: Session = Depends(get_db),
+    admin_auth: str = Depends(require_admin_api_key)
+):
     """
     Returns all state-wise and national default economic/emissions tariffs.
+    Requires valid administrative credentials (X-Admin-API-Key).
     """
     RegionalTariffService.seed_initial_tariffs_if_empty(db)
     return db.query(RegionalTariff).order_by(RegionalTariff.id.asc()).all()
@@ -30,10 +29,11 @@ def update_regional_tariff(
     state_code: str,
     payload: RegionalTariffCreateUpdate,
     db: Session = Depends(get_db),
-    admin_auth: None = Depends(verify_admin_access)
+    admin_auth: str = Depends(require_admin_api_key)
 ):
     """
     Admin Policy Engine Endpoint: Dynamically tunes labor/electricity tariffs or CO2 factors for a target state.
+    Requires valid administrative credentials (X-Admin-API-Key).
     """
     code_upper = state_code.upper().strip()
     tariff = db.query(RegionalTariff).filter(RegionalTariff.state_code == code_upper).first()

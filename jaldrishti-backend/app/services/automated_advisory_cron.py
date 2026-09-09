@@ -39,6 +39,25 @@ async def run_daily_weather_and_pest_batch_job(db: Session = None) -> dict:
                 geo_clusters[key] = []
             geo_clusters[key].append(p)
 
+        MAX_CONCURRENT_PUSH = 20
+        push_semaphore = asyncio.Semaphore(MAX_CONCURRENT_PUSH)
+
+        async def _send_bounded_notification(token: str, title_str: str, body_str: str, payload_data: dict) -> bool:
+            async with push_semaphore:
+                try:
+                    return await asyncio.to_thread(
+                        FirebaseService.send_push_notification,
+                        fcm_token=token,
+                        title=title_str,
+                        body=body_str,
+                        data_payload=payload_data
+                    )
+                except Exception as push_err:
+                    logger.warning(f"[Cron Scheduler] Push error: {push_err}")
+                    return False
+
+        notification_tasks = []
+
         for (lat, lon), cluster_plots in geo_clusters.items():
             try:
                 weather_res = await WeatherService.fetch_realtime_weather(lat, lon)
@@ -71,28 +90,35 @@ async def run_daily_weather_and_pest_batch_job(db: Session = None) -> dict:
                         risk = adv.get("risk_level", "").upper()
                         if risk in ["CRITICAL", "HIGH"]:
                             disease_name = adv.get("disease_name", "Pest Warning")
-                            crop_name = plot.crop_id.replaceAll("_", " ").title() if hasattr(plot.crop_id, "replaceAll") else plot.crop_id.replace("_", " ").title()
+                            crop_name = plot.crop_id.replace("_", " ").title()
                             treatment = adv.get("chemical_treatment", "Apply recommended treatment.")
 
                             title = f"⚠️ {disease_name} ({risk})"
                             body = f"High risk in {plot.name} ({crop_name}). {treatment}"
 
-                            sent = await asyncio.to_thread(
-                                FirebaseService.send_push_notification,
-                                fcm_token=user.fcm_token,
-                                title=title,
-                                body=body,
-                                data_payload={
-                                    "screen": "pest_advisory",
-                                    "plot_id": str(plot.id),
-                                    "crop_id": plot.crop_id
-                                }
+                            notification_tasks.append(
+                                _send_bounded_notification(
+                                    token=user.fcm_token,
+                                    title_str=title,
+                                    body_str=body,
+                                    payload_data={
+                                        "screen": "pest_advisory",
+                                        "plot_id": str(plot.id),
+                                        "crop_id": plot.crop_id
+                                    }
+                                )
                             )
-                            if sent:
-                                notifications_sent += 1
 
             except Exception as e:
                 logger.error(f"[Cron Scheduler] Error processing weather cluster at ({lat}, {lon}): {e}")
+
+        # Execute push notifications concurrently with bounded parallelism (20 concurrent requests)
+        if notification_tasks:
+            logger.info(f"[Cron Scheduler] Concurrently dispatching {len(notification_tasks)} push notifications (bounded to {MAX_CONCURRENT_PUSH})...")
+            results = await asyncio.gather(*notification_tasks, return_exceptions=True)
+            for res in results:
+                if res is True:
+                    notifications_sent += 1
 
         logger.info(f"[Cron Scheduler] Batch completed! Scanned {total_scanned} plots. Dispatched {notifications_sent} notifications.")
         return {

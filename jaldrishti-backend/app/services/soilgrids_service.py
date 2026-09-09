@@ -66,7 +66,7 @@ class SoilGridsService:
         cache_key = f"soil_grid:{grid_lat}:{grid_lon}"
 
         # 2. Check Primary Redis / Memory Cache
-        cached_data = CacheService.get(cache_key)
+        cached_data = await CacheService.get(cache_key)
         if cached_data:
             return cached_data
 
@@ -127,7 +127,7 @@ class SoilGridsService:
                     cls._consecutive_failures = 0
 
                     # Cache soil profile for 30 days (2,592,000 seconds)
-                    CacheService.set(cache_key, result, expire_seconds=2592000)
+                    await CacheService.set(cache_key, result, expire_seconds=2592000)
                     cls._stale_cache[cache_key] = result
                     return result
 

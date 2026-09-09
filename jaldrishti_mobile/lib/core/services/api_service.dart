@@ -14,7 +14,15 @@ class ApiException implements Exception {
   String toString() => 'ApiException($statusCode): $message';
 }
 
+typedef TokenRefreshCallback = Future<String?> Function();
+typedef ForceLogoutCallback = void Function();
+
 class ApiService {
+  // Centralized 401 Interceptor Hooks
+  static TokenRefreshCallback? onTokenRefreshNeeded;
+  static ForceLogoutCallback? onForceLogout;
+  static bool _isRefreshing = false;
+
   // Core Helper: Send HTTP Request with Headers, Token Injection, and Timeout
   static Future<dynamic> _sendRequest(
     String method,
@@ -23,6 +31,7 @@ class ApiService {
     Map<String, dynamic>? body,
     Map<String, String>? customHeaders,
     Duration? timeout,
+    bool isRetry = false,
   }) async {
     final uri = Uri.parse(url);
     final headers = <String, String>{
@@ -67,13 +76,50 @@ class ApiService {
 
     if (response.statusCode >= 200 && response.statusCode < 300) {
       return decodedData;
-    } else {
-      String detailMsg = 'Server returned HTTP ${response.statusCode}';
-      if (decodedData is Map && decodedData.containsKey('detail')) {
-        detailMsg = decodedData['detail'].toString();
-      }
-      throw ApiException(response.statusCode, detailMsg, body: decodedData);
     }
+
+    // F-20: Centralized 401 Interceptor with single silent refresh retry
+    if (response.statusCode == 401 && !isRetry && !_isRefreshing) {
+      final uriPath = uri.path;
+      final isExcludedAuthEndpoint = uriPath.endsWith('/auth/login') ||
+          uriPath.endsWith('/auth/register') ||
+          uriPath.endsWith('/auth/refresh') ||
+          uriPath.contains('/auth/forgot-password');
+
+      if (!isExcludedAuthEndpoint && onTokenRefreshNeeded != null) {
+        _isRefreshing = true;
+        try {
+          debugPrint('[ApiService] HTTP 401 on $method $url. Attempting silent token refresh...');
+          final newToken = await onTokenRefreshNeeded!();
+          if (newToken != null && newToken.isNotEmpty) {
+            debugPrint('[ApiService] Silent token refresh succeeded. Retrying request with new token...');
+            return await _sendRequest(
+              method,
+              url,
+              token: newToken,
+              body: body,
+              customHeaders: customHeaders,
+              timeout: timeout,
+              isRetry: true,
+            );
+          } else {
+            debugPrint('[ApiService] Silent token refresh returned null. Forcing logout.');
+            onForceLogout?.call();
+          }
+        } catch (refreshErr) {
+          debugPrint('[ApiService] Error during silent token refresh: $refreshErr');
+          onForceLogout?.call();
+        } finally {
+          _isRefreshing = false;
+        }
+      }
+    }
+
+    String detailMsg = 'Server returned HTTP ${response.statusCode}';
+    if (decodedData is Map && decodedData.containsKey('detail')) {
+      detailMsg = decodedData['detail'].toString();
+    }
+    throw ApiException(response.statusCode, detailMsg, body: decodedData);
   }
 
   // =========================================================================
@@ -122,7 +168,7 @@ class ApiService {
 
   static Future<Map<String, dynamic>> requestPasswordResetOtp(String phoneNumber) async {
     return await _sendRequest('POST', ApiConstants.requestOtpEndpoint, body: {
-      'phone_number': phoneNumber,
+      'phone_or_username': phoneNumber,
     });
   }
 
@@ -132,7 +178,7 @@ class ApiService {
     required String newPassword,
   }) async {
     return await _sendRequest('POST', ApiConstants.resetPasswordEndpoint, body: {
-      'phone_number': phoneNumber,
+      'phone_or_username': phoneNumber,
       'otp_code': otpCode,
       'new_password': newPassword,
     });
@@ -162,8 +208,9 @@ class ApiService {
     required Map<String, dynamic> profileData,
     required String token,
   }) async {
-    return await _sendRequest('POST', ApiConstants.updateProfileEndpoint, token: token, body: profileData);
+    return await _sendRequest('PUT', ApiConstants.updateProfileEndpoint, token: token, body: profileData);
   }
+
 
   static Future<void> updateFcmToken({
     required String fcmToken,

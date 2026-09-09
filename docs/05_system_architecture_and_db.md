@@ -26,7 +26,7 @@ graph TD
         DB["Supabase PostgreSQL Cluster (Port 6543)"]
         Cache["Redis Cloud In-Memory Cache"]
         Chroma["ChromaDB Local Vector Store"]
-        LLM["Groq Llama-3 / Gemini AI Models"]
+        LLM["Groq High-Speed LLM Inference Cloud"]
         WeatherAPI["Open-Meteo Satellite Feed"]
         SoilAPI["ISRIC SoilGrids 250m API"]
     end
@@ -129,7 +129,7 @@ redis://default:[TOKEN]@redis-15508.crce276.ap-south-1-3.ec2.cloud.redislabs.com
 | Cache Target | Key Pattern | TTL Duration | Purpose & Data Payload |
 |---|---|---|---|
 | **Weather Forecast** | `weather:{lat_2dec}:{lon_2dec}` | `10800 sec` ($3\text{ Hours}$) | Cached 6-day Open-Meteo hourly & daily weather forecast JSON array. |
-| **Soil Physical Content** | `soil:{lat_2dec}:{lon_2dec}` | `604800 sec` ($7\text{ Days}$) | Satellite clay/sand composition percentages from ISRIC SoilGrids. |
+| **Soil Physical Content** | `soil_grid:{lat_2dec}:{lon_2dec}` | `2592000 sec` ($30\text{ Days}$) | Satellite clay/sand composition percentages from ISRIC SoilGrids. |
 | **RAG Embedding Cache** | `rag:query:{hash}` | `86400 sec` ($24\text{ Hours}$) | Pre-computed vector search results for frequent agronomy queries. |
 
 #### Redis Cache Lookup Implementation Pattern:

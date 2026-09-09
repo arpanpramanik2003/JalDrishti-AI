@@ -7,6 +7,7 @@ import '../providers/auth_provider.dart';
 import '../providers/notification_provider.dart';
 import '../providers/theme_provider.dart';
 import '../core/constants/api_constants.dart';
+import '../models/user_model.dart';
 import '../widgets/backend_server_dialog.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -33,71 +34,156 @@ class _SettingsScreenState extends State<SettingsScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (ctx) {
-        return Padding(
-          padding: EdgeInsets.only(
-            left: 20, right: 20, top: 24,
-            bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
+        bool isSaving = false;
+        String? modalError;
+
+        return StatefulBuilder(
+          builder: (ctx, setModalState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                left: 20, right: 20, top: 24,
+                bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(LucideIcons.user, color: Color(0xFF38BDF8)),
-                  const SizedBox(width: 10),
-                  Text(
-                    'Update Full Name',
-                    style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold),
+                  Row(
+                    children: [
+                      const Icon(LucideIcons.user, color: Color(0xFF38BDF8)),
+                      const SizedBox(width: 10),
+                      Text(
+                        'Update Full Name',
+                        style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                  if (modalError != null) ...[
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.redAccent.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.redAccent.withValues(alpha: 0.4)),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(LucideIcons.alertCircle, color: Colors.redAccent, size: 16),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              modalError!,
+                              style: GoogleFonts.inter(fontSize: 12, color: Colors.redAccent),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: firstNameController,
+                    maxLength: 30,
+                    decoration: InputDecoration(
+                      counterText: '',
+                      labelText: 'First Name',
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      prefixIcon: const Icon(LucideIcons.userCheck, size: 18),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: lastNameController,
+                    maxLength: 30,
+                    decoration: InputDecoration(
+                      counterText: '',
+                      labelText: 'Last Name',
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      prefixIcon: const Icon(LucideIcons.userCheck, size: 18),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: isSaving
+                          ? null
+                          : () async {
+                              final newFirst = firstNameController.text.trim();
+                              final newLast = lastNameController.text.trim();
+
+                              if (newFirst.isEmpty) {
+                                setModalState(() {
+                                  modalError = 'First name cannot be empty.';
+                                });
+                                return;
+                              }
+
+                              setModalState(() {
+                                isSaving = true;
+                                modalError = null;
+                              });
+
+                              // Merge new name with existing user profile fields
+                              final currentProfile = auth.user?.profile;
+                              final updatedProfile = currentProfile != null
+                                  ? currentProfile.copyWith(
+                                      firstName: newFirst,
+                                      lastName: newLast,
+                                    )
+                                  : UserProfileModel(
+                                      firstName: newFirst,
+                                      lastName: newLast,
+                                      locationName: 'Kolkata, WB',
+                                      latitude: 22.5726,
+                                      longitude: 88.3639,
+                                      farmAreaAcres: 2.5,
+                                      interestedCrop: 'paddy_rice',
+                                      farmingExperience: 'Intermediate',
+                                      preferredLanguage: 'English',
+                                    );
+
+                              final success = await auth.updateProfile(updatedProfile);
+
+                              if (!ctx.mounted) return;
+
+                              if (success) {
+                                Navigator.pop(ctx);
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Profile name updated successfully!'),
+                                      backgroundColor: Color(0xFF0284C7),
+                                    ),
+                                  );
+                                }
+                              } else {
+                                setModalState(() {
+                                  isSaving = false;
+                                  modalError = auth.errorMessage ?? 'Failed to update profile name.';
+                                });
+                              }
+                            },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF0284C7),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: isSaving
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                            )
+                          : Text('Save Changes', style: GoogleFonts.outfit(fontSize: 15, fontWeight: FontWeight.bold)),
+                    ),
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: firstNameController,
-                maxLength: 30,
-                decoration: InputDecoration(
-                  counterText: '',
-                  labelText: 'First Name',
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  prefixIcon: const Icon(LucideIcons.userCheck, size: 18),
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: lastNameController,
-                maxLength: 30,
-                decoration: InputDecoration(
-                  counterText: '',
-                  labelText: 'Last Name',
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  prefixIcon: const Icon(LucideIcons.userCheck, size: 18),
-                ),
-              ),
-              const SizedBox(height: 20),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.pop(ctx);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Profile name updated successfully!'),
-                        backgroundColor: Color(0xFF0284C7),
-                      ),
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF0284C7),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                  child: Text('Save Changes', style: GoogleFonts.outfit(fontSize: 15, fontWeight: FontWeight.bold)),
-                ),
-              ),
-            ],
-          ),
+            );
+          },
         );
       },
     );
@@ -398,6 +484,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _showLanguageSelectorDialog(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
+    final currentCode = themeProvider.locale.languageCode;
+
     showDialog(
       context: context,
       builder: (ctx) {
@@ -416,20 +505,48 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ListTile(
                 leading: const Text('🇬🇧', style: TextStyle(fontSize: 22)),
                 title: const Text('English (Default)'),
-                trailing: const Icon(LucideIcons.check, color: Color(0xFF38BDF8)),
-                onTap: () => Navigator.pop(ctx),
+                subtitle: const Text('Full interface supported'),
+                trailing: currentCode == 'en'
+                    ? const Icon(LucideIcons.check, color: Color(0xFF38BDF8))
+                    : null,
+                onTap: () {
+                  themeProvider.setLocale(const Locale('en', ''));
+                  Navigator.pop(ctx);
+                },
               ),
               ListTile(
                 leading: const Text('🇮🇳', style: TextStyle(fontSize: 22)),
                 title: const Text('বাংলা (Bengali)'),
-                subtitle: const Text('Coming Soon'),
-                onTap: () => Navigator.pop(ctx),
+                subtitle: const Text('Coming Soon (14 ARB keys translated, screen UI pending)'),
+                trailing: currentCode == 'bn'
+                    ? const Icon(LucideIcons.check, color: Color(0xFF38BDF8))
+                    : null,
+                onTap: () {
+                  Navigator.pop(ctx);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Bengali full screen translation is coming soon! Chat advisory already supports Bengali in JalSathi AI.'),
+                      backgroundColor: Color(0xFF0284C7),
+                    ),
+                  );
+                },
               ),
               ListTile(
                 leading: const Text('🇮🇳', style: TextStyle(fontSize: 22)),
                 title: const Text('हिंदी (Hindi)'),
-                subtitle: const Text('Coming Soon'),
-                onTap: () => Navigator.pop(ctx),
+                subtitle: const Text('Coming Soon (14 ARB keys translated, screen UI pending)'),
+                trailing: currentCode == 'hi'
+                    ? const Icon(LucideIcons.check, color: Color(0xFF38BDF8))
+                    : null,
+                onTap: () {
+                  Navigator.pop(ctx);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Hindi full screen translation is coming soon! Chat advisory already supports Hindi in JalSathi AI.'),
+                      backgroundColor: Color(0xFF0284C7),
+                    ),
+                  );
+                },
               ),
             ],
           ),
@@ -564,7 +681,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ListTile(
                         leading: _buildIconBadge(LucideIcons.languages, const Color(0xFFA78BFA), isDark),
                         title: Text('App Advisory Language', style: GoogleFonts.outfit(fontWeight: FontWeight.w600, color: textColor)),
-                        subtitle: Text('English (Default)', style: GoogleFonts.inter(fontSize: 12, color: subtextColor)),
+                        subtitle: Text(
+                          themeProvider.locale.languageCode == 'bn'
+                              ? 'বাংলা (Bengali)'
+                              : themeProvider.locale.languageCode == 'hi'
+                                  ? 'हिंदी (Hindi)'
+                                  : 'English (Default)',
+                          style: GoogleFonts.inter(fontSize: 12, color: subtextColor),
+                        ),
                         trailing: const Icon(LucideIcons.chevronRight, size: 18),
                         onTap: () => _showLanguageSelectorDialog(context),
                       ),
