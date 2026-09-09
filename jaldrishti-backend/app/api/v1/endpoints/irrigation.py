@@ -4,6 +4,7 @@ import math
 from datetime import date, datetime, timedelta
 from typing import List, Optional
 from fastapi import APIRouter, HTTPException, Depends, Query
+from starlette.concurrency import run_in_threadpool
 from sqlalchemy.orm import Session
 from app.db.database import get_db
 from app.models.user import User
@@ -120,7 +121,9 @@ async def get_irrigation_recommendation(
 ):
     plot = None
     if payload.plot_id:
-        plot = db.query(FarmPlot).filter(FarmPlot.id == payload.plot_id).first()
+        plot = await run_in_threadpool(
+            lambda: db.query(FarmPlot).filter(FarmPlot.id == payload.plot_id).first()
+        )
         if not plot:
             raise HTTPException(status_code=404, detail="Farm plot not found")
         if plot.user_id != current_user.id:
@@ -182,10 +185,12 @@ async def get_irrigation_recommendation(
             precipitation_mm=w_today.get("precipitation_mm", 0.0),
         )
 
-    # Fetch Logged Irrigation Events for this Plot (F-01 Fix: normalize keys to ISO string)
+    # Fetch Logged Irrigation Events for this Plot (F-01: normalize keys to ISO string; single query reused throughout)
     logged_irrigation_map = {}
     if payload.plot_id:
-        logs = db.query(IrrigationLog).filter(IrrigationLog.farm_plot_id == payload.plot_id).all()
+        logs = await run_in_threadpool(
+            lambda: db.query(IrrigationLog).filter(IrrigationLog.farm_plot_id == payload.plot_id).all()
+        )
         for log in logs:
             if isinstance(log.applied_date, (date, datetime)):
                 date_iso = log.applied_date.isoformat()
@@ -255,9 +260,11 @@ async def get_irrigation_recommendation(
     yesterday_baseline = 0.0
 
     if payload.plot_id:
-        depletion_record = db.query(SoilDepletionState).filter(
-            SoilDepletionState.farm_plot_id == payload.plot_id
-        ).first()
+        depletion_record = await run_in_threadpool(
+            lambda: db.query(SoilDepletionState).filter(
+                SoilDepletionState.farm_plot_id == payload.plot_id
+            ).first()
+        )
 
         if not depletion_record:
             # First-ever calculation for this plot under persistent model
@@ -313,9 +320,12 @@ async def get_irrigation_recommendation(
                     skipped_runs_count=0
                 )
 
-            db.add(depletion_record)
-            db.commit()
-            db.refresh(depletion_record)
+            def _save_initial_depletion(rec):
+                db.add(rec)
+                db.commit()
+                db.refresh(rec)
+
+            await run_in_threadpool(_save_initial_depletion, depletion_record)
 
         # Baseline carried from yesterday for today's mass balance
         if depletion_record.last_updated_date < today_obj:
@@ -351,9 +361,17 @@ async def get_irrigation_recommendation(
 
     # Persist today's new depletion value
     if payload.plot_id and depletion_record:
-        depletion_record.current_depletion_mm = today_decision["current_depletion_mm"]
-        depletion_record.last_updated_date = today_obj
-        db.commit()
+        def _save_today_depletion(rec, cur_dep, d_today):
+            rec.current_depletion_mm = cur_dep
+            rec.last_updated_date = d_today
+            db.commit()
+
+        await run_in_threadpool(
+            _save_today_depletion,
+            depletion_record,
+            today_decision["current_depletion_mm"],
+            today_obj
+        )
 
     # 7. Construct 7-day Multi-Day Metrics for Visual Charts
     # Pre-today dates: backfill display metrics
@@ -456,7 +474,8 @@ async def get_irrigation_recommendation(
     if payload.plot_id and plot:
         location_label = plot.location_name or payload.field_name
 
-    regional_profile = RegionalTariffService.get_tariff_for_plot(
+    regional_profile = await run_in_threadpool(
+        RegionalTariffService.get_tariff_for_plot,
         db,
         location_name=location_label,
         lat=payload.latitude,
@@ -500,9 +519,12 @@ async def get_irrigation_recommendation(
     if payload.plot_id and depletion_record:
         if rain_hold_active and needs_irrigation_would_have_been_true:
             if depletion_record.last_rain_hold_date != today_obj:
-                depletion_record.skipped_runs_count += 1
-                depletion_record.last_rain_hold_date = today_obj
-                db.commit()
+                def _update_rain_hold_skipped(rec, d_today):
+                    rec.skipped_runs_count += 1
+                    rec.last_rain_hold_date = d_today
+                    db.commit()
+
+                await run_in_threadpool(_update_rain_hold_skipped, depletion_record, today_obj)
         session_count = depletion_record.skipped_runs_count
     else:
         session_count = 1 if (rain_hold_active and needs_irrigation_would_have_been_true) else 0

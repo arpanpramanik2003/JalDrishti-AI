@@ -30,12 +30,12 @@ class WeatherService:
         cache_key = f"weather:{grid_lat}:{grid_lon}"
 
         # 1. Check Primary Cache (Redis or TTL Memory)
-        cached_data = CacheService.get(cache_key)
+        cached_data = await CacheService.get(cache_key)
         if cached_data:
             # Smart Cache Busting: If cached data came from old WeatherAPI, invalidate it immediately
             if cached_data.get("source", "").startswith("WeatherAPI"):
                 logger.info(f"[WeatherService] Invalidating legacy WeatherAPI cache for ({grid_lat}, {grid_lon}).")
-                CacheService.delete(cache_key)
+                await CacheService.delete(cache_key)
                 cls._stale_cache.pop(cache_key, None)
             else:
                 return cached_data
@@ -133,7 +133,7 @@ class WeatherService:
                 }
 
                 # Save in Cache & Stale Backup
-                CacheService.set(cache_key, result, expire_seconds=10800)
+                await CacheService.set(cache_key, result, expire_seconds=10800)
                 cls._stale_cache[cache_key] = result
                 return result
 
