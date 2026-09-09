@@ -49,7 +49,7 @@
 - **Voice-to-Text (STT)** with real-time **Audio Decibel Motion Animation** on the mic button.
 - **Text-to-Speech (TTS)** voice read-aloud buttons on AI responses in native Bengali (`bn-IN`), Hindi (`hi-IN`), and English (`en-US`).
 - Fully localized **Multi-lingual UI** (Bengali, Hindi, English) including greetings, companion subtitles, and agronomic suggestions.
-- Multi-tier Fallback chain (Groq Llama-3-70B $\rightarrow$ Gemini 1.5 Flash $\rightarrow$ Local Knowledge Engine).
+- Multi-tier Fallback chain (Groq Tier 1 Primary $\rightarrow$ Groq Tier 2 Fast Fallback $\rightarrow$ Deterministic Local PoP Knowledge Engine).
 
 ---
 
@@ -79,7 +79,7 @@ graph TD
         DB["Supabase PostgreSQL Pooler"]
         Cache["Redis Cloud Cache"]
         Chroma["ChromaDB Vector Store"]
-        LLM["Groq / Gemini AI Model"]
+        LLM["Groq High-Speed LLM Inference Cloud"]
     end
 
     UI --> State
@@ -108,7 +108,7 @@ graph TD
 | **Database** | PostgreSQL (Supabase Transaction Pooler) | Relational persistence for users, farm plots, and logs |
 | **Caching Layer** | Redis Cloud | High-speed cache for Open-Meteo weather JSON and soil data |
 | **Vector DB** | ChromaDB, HuggingFace Transformers | Vector embeddings for ICAR agronomic RAG knowledge |
-| **LLM Inference** | Groq API (Llama-3-70B) / Google Gemini | Multilingual conversational reasoning |
+| **LLM Inference** | Groq API (High-Speed LLM Inference) | Multilingual conversational reasoning |
 | **Weather Feed** | Open-Meteo API | Real-time & 6-day solar radiation, temp, humidity, wind |
 | **Soil Intelligence** | ISRIC SoilGrids API | Global 250m satellite clay & sand soil texture maps |
 

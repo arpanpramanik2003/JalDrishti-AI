@@ -26,7 +26,7 @@ graph TD
         DB["Supabase PostgreSQL Cluster (Port 6543)"]
         Cache["Redis Cloud In-Memory Cache"]
         Chroma["ChromaDB Local Vector Store"]
-        LLM["Groq Llama-3 / Gemini AI Models"]
+        LLM["Groq High-Speed LLM Inference Cloud"]
         WeatherAPI["Open-Meteo Satellite Feed"]
         SoilAPI["ISRIC SoilGrids 250m API"]
     end

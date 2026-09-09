@@ -31,17 +31,17 @@ To ensure high availability even under network congestion or API rate limits, Ja
 
 ```mermaid
 graph TD
-    A["User Agronomy Query"] --> B{"Try Groq Llama-3-70B API"}
-    B -- Success --> C["Generate RAG Response"]
-    B -- Error / Rate Limit --> D{"Try Gemini 1.5 Flash API"}
+    A["User Agronomy Query"] --> B{"Try Primary Groq LLM (e.g. gpt-oss-20b)"}
+    B -- Success --> C["Generate Grounded RAG Response"]
+    B -- Error / Rate Limit --> D{"Try Secondary Groq LLM (e.g. compound-mini)"}
     D -- Success --> C
-    D -- Error / Offline --> E["Rule-Based Agronomic Knowledge Engine"]
+    D -- Error / Offline --> E["Deterministic Local Knowledge Fallback (Direct PoP Extraction)"]
     E --> C
 ```
 
-1. **Primary LLM**: Groq Llama-3-70B (`llama3-70b-8192`) – Sub-second latency.
-2. **Secondary LLM**: Google Gemini 1.5 Flash (`gemini-1.5-flash`).
-3. **Tertiary Fallback**: Local Rule-Based Agronomic Knowledge Engine (Offline mode).
+1. **Tier 1 (Primary Groq LLM)**: Groq high-capacity model (`openai/gpt-oss-20b` or configured primary) – Fast inference with rich domain reasoning.
+2. **Tier 2 (Secondary Groq LLM Fallback)**: Groq lightweight model (`groq/compound-mini` or secondary) – Quick structured failover if Tier 1 times out or encounters rate limits.
+3. **Tier 3 (Local Deterministic Fallback)**: Genuine local deterministic response using direct ICAR Package of Practices (PoP) chunk formatting without any external LLM call, guaranteeing verified agronomic guidance even during complete network or API outages.
 
 ---
 
