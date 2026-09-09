@@ -487,6 +487,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
             ] else if (_selectedTab == 2) ...[
               SmartInsightsTab(
                 irrigationData: data,
+                isLoading: irrigation.isLoading,
                 satisfactionRatio: satisfactionRatio,
                 isOptimal: isOptimal,
                 isDeficit: isDeficit,

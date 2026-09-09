@@ -4,6 +4,7 @@ import 'package:lucide_icons/lucide_icons.dart';
 
 class SmartInsightsTab extends StatelessWidget {
   final Map<String, dynamic>? irrigationData;
+  final bool isLoading;
   final double satisfactionRatio;
   final bool isOptimal;
   final bool isDeficit;
@@ -17,6 +18,7 @@ class SmartInsightsTab extends StatelessWidget {
   const SmartInsightsTab({
     super.key,
     required this.irrigationData,
+    this.isLoading = false,
     required this.satisfactionRatio,
     required this.isOptimal,
     required this.isDeficit,
@@ -37,10 +39,11 @@ class SmartInsightsTab extends StatelessWidget {
 
     final cumSavingsRaw = irrigationData?['cumulative_savings'];
     final cumSavings = cumSavingsRaw is Map ? Map<String, dynamic>.from(cumSavingsRaw) : null;
-    final cumWaterLiters = (cumSavings?['total_water_saved_liters'] as num?)?.toDouble() ?? 45000.0;
+    final cumWaterLiters = (cumSavings?['total_water_saved_liters'] as num?)?.toDouble() ?? 0.0;
     final cumWaterKL = cumWaterLiters / 1000.0;
-    final cumMoneyINR = (cumSavings?['total_money_saved_inr'] as num?)?.toDouble() ?? 850.0;
-    final cumCo2Kg = (cumSavings?['total_co2_reduced_kg'] as num?)?.toDouble() ?? 29.8;
+    final cumMoneyINR = (cumSavings?['total_money_saved_inr'] as num?)?.toDouble() ?? 0.0;
+    final cumCo2Kg = (cumSavings?['total_co2_reduced_kg'] as num?)?.toDouble() ?? 0.0;
+    final hasSavingsData = cumSavings != null && (cumWaterLiters > 0 || cumMoneyINR > 0 || cumCo2Kg > 0);
 
     final cardStatusColor = isOptimal
         ? const Color(0xFF10B981)
@@ -179,39 +182,108 @@ class SmartInsightsTab extends StatelessWidget {
                   borderRadius: BorderRadius.circular(14),
                   border: Border.all(color: borderColor),
                 ),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF10B981).withValues(alpha: 0.15),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(LucideIcons.piggyBank, color: Color(0xFF10B981), size: 20),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                child: isLoading
+                    ? Row(
                         children: [
-                          Text(
-                            'Cumulative Seasonal Precision ROI',
-                            style: GoogleFonts.inter(fontSize: 11, color: subtextColor),
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF38BDF8).withValues(alpha: 0.15),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(color: Color(0xFF38BDF8), strokeWidth: 2),
+                            ),
                           ),
-                          const SizedBox(height: 2),
-                          Text(
-                            'Saved ~${cumWaterKL.toStringAsFixed(1)} kL water (≈ ₹${cumMoneyINR.toStringAsFixed(0)} saved)',
-                            style: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.bold, color: textColor),
-                          ),
-                          Text(
-                            '🌱 Reduced ${cumCo2Kg.toStringAsFixed(1)} kg CO₂ carbon footprint',
-                            style: GoogleFonts.inter(fontSize: 10, color: const Color(0xFF10B981), fontWeight: FontWeight.w600),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Calculating Seasonal Savings...',
+                                  style: GoogleFonts.outfit(fontSize: 13, fontWeight: FontWeight.bold, color: textColor),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  'Fetching irrigation telemetry and hydrology balance...',
+                                  style: GoogleFonts.inter(fontSize: 11, color: subtextColor),
+                                ),
+                              ],
+                            ),
                           ),
                         ],
-                      ),
-                    ),
-                  ],
-                ),
+                      )
+                    : hasSavingsData
+                        ? Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF10B981).withValues(alpha: 0.15),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(LucideIcons.piggyBank, color: Color(0xFF10B981), size: 20),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Cumulative Seasonal Precision ROI',
+                                      style: GoogleFonts.inter(fontSize: 11, color: subtextColor),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      'Saved ~${cumWaterKL.toStringAsFixed(1)} kL water (≈ ₹${cumMoneyINR.toStringAsFixed(0)} saved)',
+                                      style: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.bold, color: textColor),
+                                    ),
+                                    Text(
+                                      '🌱 Reduced ${cumCo2Kg.toStringAsFixed(1)} kg CO₂ carbon footprint',
+                                      style: GoogleFonts.inter(fontSize: 10, color: const Color(0xFF10B981), fontWeight: FontWeight.w600),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          )
+                        : Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF64748B).withValues(alpha: 0.15),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(LucideIcons.piggyBank, color: Color(0xFF94A3B8), size: 20),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Cumulative Seasonal Precision ROI',
+                                      style: GoogleFonts.inter(fontSize: 11, color: subtextColor),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      '0 kL water saved (₹0)',
+                                      style: GoogleFonts.outfit(fontSize: 13, fontWeight: FontWeight.w600, color: textColor),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      'No savings data yet — start logging irrigation runs to track your water and electricity savings.',
+                                      style: GoogleFonts.inter(fontSize: 11, color: subtextColor, height: 1.3),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
               ),
               const SizedBox(height: 14),
 
