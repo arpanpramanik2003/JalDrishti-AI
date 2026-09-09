@@ -4,6 +4,8 @@ import logging
 from datetime import datetime, timedelta
 from typing import Optional
 from app.core.config import settings
+from app.core.constants import FALLBACK_SOLAR_RADIATION_MJ_M2
+from app.engine.penman_monteith import PenmanMonteithEngine
 from app.services.cache_service import CacheService
 
 logger = logging.getLogger("jaldrishti.weather")
@@ -48,10 +50,11 @@ class WeatherService:
             return cls._generate_fallback_telemetry(lat, lon, past_days, forecast_days)
 
         # 3. Fetch from Open-Meteo (Primary High-Precision Meteorological Engine)
+        # Note: Requesting both wind_speed_10m_mean (FAO standard daily mean) and wind_speed_10m_max
         params = {
             "latitude": grid_lat,
             "longitude": grid_lon,
-            "daily": "temperature_2m_max,temperature_2m_min,relative_humidity_2m_mean,shortwave_radiation_sum,wind_speed_10m_max,precipitation_sum,et0_fao_evapotranspiration",
+            "daily": "temperature_2m_max,temperature_2m_min,relative_humidity_2m_mean,shortwave_radiation_sum,wind_speed_10m_mean,wind_speed_10m_max,precipitation_sum,et0_fao_evapotranspiration",
             "models": "best_match",
             "timezone": "auto",
             "past_days": past_days,
@@ -88,15 +91,36 @@ class WeatherService:
 
                 daily = data.get("daily", {})
                 dates = daily.get("time", [])
+                mean_winds = daily.get("wind_speed_10m_mean")
+                max_winds = daily.get("wind_speed_10m_max")
 
                 formatted_daily = {}
                 for idx, date_str in enumerate(dates):
+                    # Wind Speed Resolution: Prioritize daily mean wind speed per FAO-56.
+                    # If Open-Meteo returns null for mean wind, fallback to max wind speed.
+                    # (Note: Using wind_speed_10m_max introduces a conservative upward bias to ETo).
+                    raw_wind_10m_kmh = None
+                    if mean_winds and idx < len(mean_winds) and mean_winds[idx] is not None:
+                        raw_wind_10m_kmh = mean_winds[idx]
+                    elif max_winds and idx < len(max_winds) and max_winds[idx] is not None:
+                        raw_wind_10m_kmh = max_winds[idx]
+                    else:
+                        raw_wind_10m_kmh = 10.0  # Default ~2.78 m/s moderate breeze
+
+                    wind_speed_10m_ms = raw_wind_10m_kmh / 3.6
+
+                    # FAO-56 Eq. 47 log-profile height reduction (10m measurement -> 2m standard surface)
+                    wind_speed_2m_ms = PenmanMonteithEngine.convert_wind_speed_to_2m(wind_speed_10m_ms, 10.0)
+
+                    solar_list = daily.get("shortwave_radiation_sum", [])
+                    solar_val = solar_list[idx] if idx < len(solar_list) and solar_list[idx] is not None else FALLBACK_SOLAR_RADIATION_MJ_M2
+
                     formatted_daily[date_str] = {
                         "temp_max_c": daily["temperature_2m_max"][idx],
                         "temp_min_c": daily["temperature_2m_min"][idx],
                         "humidity_percent": daily["relative_humidity_2m_mean"][idx],
-                        "solar_rad_mj_m2": daily.get("shortwave_radiation_sum", [21.0]*len(dates))[idx] or 21.0,
-                        "wind_speed_m_s": daily["wind_speed_10m_max"][idx] / 3.6,  # km/h to m/s
+                        "solar_rad_mj_m2": solar_val,
+                        "wind_speed_m_s": wind_speed_2m_ms,
                         "precipitation_mm": daily["precipitation_sum"][idx]
                     }
 
@@ -143,12 +167,16 @@ class WeatherService:
                     for item in forecastday:
                         d_str = item.get("date")
                         day_data = item.get("day", {})
+                        raw_wind_kph = day_data.get("maxwind_kph", 10.0)
+                        wind_10m_ms = raw_wind_kph / 3.6
+                        wind_2m_ms = PenmanMonteithEngine.convert_wind_speed_to_2m(wind_10m_ms, 10.0)
+
                         formatted_daily[d_str] = {
                             "temp_max_c": day_data.get("maxtemp_c", 32.0),
                             "temp_min_c": day_data.get("mintemp_c", 24.0),
                             "humidity_percent": day_data.get("avghumidity", 75.0),
-                            "solar_rad_mj_m2": 21.0,
-                            "wind_speed_m_s": day_data.get("maxwind_kph", 10.0) / 3.6,
+                            "solar_rad_mj_m2": FALLBACK_SOLAR_RADIATION_MJ_M2,
+                            "wind_speed_m_s": wind_2m_ms,
                             "precipitation_mm": day_data.get("totalprecip_mm", 0.0)
                         }
                     return {
@@ -172,8 +200,8 @@ class WeatherService:
                 "temp_max_c": 32.5,
                 "temp_min_c": 24.0,
                 "humidity_percent": 75.0,
-                "solar_rad_mj_m2": 21.0,
-                "wind_speed_m_s": 2.5,
+                "solar_rad_mj_m2": FALLBACK_SOLAR_RADIATION_MJ_M2,
+                "wind_speed_m_s": 2.0,  # Standard 2m height baseline breeze
                 "precipitation_mm": 0.0
             }
         return {

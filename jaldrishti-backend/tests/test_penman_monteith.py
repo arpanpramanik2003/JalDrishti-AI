@@ -91,3 +91,21 @@ class TestPenmanMonteithEngine:
             latitude_deg=23.23
         )
         assert eto > 10.0
+
+    def test_fao56_eq47_wind_speed_height_conversion(self):
+        """
+        F-11 Verification: FAO-56 Eq. 47 Logarithmic Wind Profile Reduction.
+        u2 = uz * (4.87 / ln(67.8 * z - 5.42))
+        For z = 10m:
+        u2 = 10.0 * (4.87 / ln(672.58)) = 10.0 * (4.87 / 6.511144) ≈ 7.479 m/s.
+        """
+        u2 = PenmanMonteithEngine.convert_wind_speed_to_2m(wind_speed_z=10.0, measurement_height_m=10.0)
+        assert u2 == pytest.approx(7.48, abs=0.01)
+
+        # Standard 2m height should return value unchanged
+        u2_standard = PenmanMonteithEngine.convert_wind_speed_to_2m(wind_speed_z=3.5, measurement_height_m=2.0)
+        assert u2_standard == 3.5
+
+        # Zero or negative wind speed returns 0.0
+        assert PenmanMonteithEngine.convert_wind_speed_to_2m(0.0) == 0.0
+

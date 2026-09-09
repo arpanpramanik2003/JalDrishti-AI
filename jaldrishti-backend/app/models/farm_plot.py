@@ -31,6 +31,7 @@ class FarmPlot(Base):
     # Relationship back to User and IrrigationLogs
     user = relationship("User", backref="farm_plots")
     irrigation_logs = relationship("IrrigationLog", back_populates="farm_plot", cascade="all, delete-orphan")
+    depletion_state = relationship("SoilDepletionState", back_populates="farm_plot", uselist=False, cascade="all, delete-orphan")
 
 
 class IrrigationLog(Base):
@@ -44,3 +45,25 @@ class IrrigationLog(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     farm_plot = relationship("FarmPlot", back_populates="irrigation_logs")
+
+
+class SoilDepletionState(Base):
+    """
+    Persistent Soil Moisture Depletion State Model.
+    
+    Tracks cumulative root-zone water depletion (D_i in mm) across the full
+    crop growing season, eliminating transient 7-day amnesia.
+    """
+    __tablename__ = "soil_depletion_state"
+
+    farm_plot_id = Column(Integer, ForeignKey("farm_plots.id", ondelete="CASCADE"), primary_key=True, index=True)
+    current_depletion_mm = Column(Float, nullable=False, default=0.0)
+    yesterday_depletion_mm = Column(Float, nullable=False, default=0.0)
+    last_updated_date = Column(Date, nullable=False, default=date.today)
+    skipped_runs_count = Column(Integer, nullable=False, default=0)
+    last_rain_hold_date = Column(Date, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    farm_plot = relationship("FarmPlot", back_populates="depletion_state")
+
