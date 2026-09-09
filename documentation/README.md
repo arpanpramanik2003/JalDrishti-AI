@@ -22,9 +22,10 @@ The documentation is organized into numbered tiers, progressing from accessible 
 | [`02-scientific-reference/`](./02-scientific-reference/README.md) | **Scientific Reference**: FAO-56 Penman-Monteith formulas, dynamic $K_c(t)$ phenology, root-zone depletion balance, Rain Hold thresholds, and known limitations. | Hydrologists, agricultural scientists, backend engineers. |
 | [`03-system-architecture/`](./03-system-architecture/README.md) | **System Architecture**: High-level topology, end-to-end request walkthrough, async Redis caching, threadpool offloading, and deployment environment. | Software engineers, cloud architects, DevOps engineers. |
 | [`04-database-reference/`](./04-database-reference/README.md) | **Database Reference**: Corrected 9-table Entity-Relationship Diagram (ERD) and field-by-field schema specifications. | Database administrators, backend developers, data engineers. |
-| `05-api-reference/` *(Future Phase)* | **REST API Contracts**: Endpoint specifications, schemas, authentication flows, error handling, and rate limits. | Mobile developers, API consumers, frontend engineers. |
-| `06-jalsathi-ai-deep-dive/` *(Future Phase)* | **JalSathi AI Pipeline**: Vector search embeddings, ChromaDB schema, Groq multi-tier fallback, and safety guardrails. | AI/ML engineers, prompt engineers. |
-| `07-operations-and-deployment/` *(Future Phase)* | **DevOps & Operations**: Local development setup, Docker, environment configuration, database migrations, and monitoring. | DevOps, SREs, system administrators. |
+| [`05-api-reference/`](./05-api-reference/README.md) | **REST API Reference**: Complete endpoint contracts, schemas, authentication rules, and error codes across all 24 application routes. | Mobile developers, backend integrators, QA automation. |
+| [`06-mobile-app-reference/`](./06-mobile-app-reference/README.md) | **Mobile Application Reference**: Flutter screen-by-screen breakdown, state management (6 Providers), Hive offline sync, and localization status. | Flutter mobile developers, UI/UX engineers. |
+| [`07-ai-rag-pipeline/`](./07-ai-rag-pipeline/README.md) | **JalSathi AI Pipeline**: Dense vector search (ChromaDB + all-MiniLM-L6-v2), fast Groq translation, 3-tier cascade, and chemical safety guardrails. | AI/ML engineers, prompt engineers, NLP specialists. |
+| [`08-limitations-and-roadmap/`](./08-limitations-and-roadmap/README.md) | **Limitations & Roadmap**: Master consolidated limitations catalog, de-duplicated open developer questions, and remediation history matrix. | Engineering leadership, auditors, product managers. |
 
 ---
 
@@ -62,3 +63,39 @@ The documentation is organized into numbered tiers, progressing from accessible 
 - [**Database Reference Index**](./04-database-reference/README.md): Schema architecture and operational tables overview.
 - [**Entity-Relationship Diagram**](./04-database-reference/entity-relationship-diagram.md): Corrected 9-table Mermaid ERD with relationships, cardinalities, and cascade behaviors.
 - [**Table-by-Table Reference**](./04-database-reference/table-by-table-reference.md): Field-by-field reference for every model including types, nullability, defaults, foreign keys, and indexes.
+
+### 05 — API Reference
+- [**REST API Reference Index**](./05-api-reference/README.md): API catalog, global JWT & Admin authentication standards, base URLs.
+- [**Authentication & Security**](./05-api-reference/authentication-and-security.md): 11 auth endpoints, profile PUT fix [F-03], password reset field fix [F-04].
+- [**Farm Plots & Crops**](./05-api-reference/farm-plots-and-crops.md): 6 endpoints covering CRUD plot lifecycle, primary plot toggles, and public crop catalog.
+- [**Irrigation & Recommendations**](./05-api-reference/irrigation-and-recommendations.md): 3 endpoints covering recommendation generation, manual logging, and history.
+- [**Chatbot & Advisory**](./05-api-reference/chatbot-and-advisory.md): 2 endpoints covering JalSathi AI RAG queries and authenticated pest advisory evaluations.
+- [**Admin & Internal Endpoints**](./05-api-reference/admin-and-internal-endpoints.md): 7 endpoints covering admin tariffs, manual batch cron triggers, and health check probes.
+
+### 06 — Mobile Application Reference
+- [**Mobile Application Index**](./06-mobile-app-reference/README.md): Flutter client architecture overview and cross-links.
+- [**Screen-by-Screen Reference**](./06-mobile-app-reference/screen-by-screen-reference.md): Detailed reference for 10 major screens + 5 analytics tabs with APIs, providers, and Phase 6 status.
+- [**State Management & Providers**](./06-mobile-app-reference/state-management-and-providers.md): 6 Providers (Auth, FarmPlot, Irrigation, Chat, Notification, Theme) & centralized 401 interceptor integration.
+- [**Offline & Sync Behavior**](./06-mobile-app-reference/offline-and-sync-behavior.md): Hive boxes (`jaldrishti_cache`, `jaldrishti_sync_queue`), sync replay engine, offline matrix, and `FLAG-P4-01` date serialization finding.
+- [**Localization Status**](./06-mobile-app-reference/localization-status.md): ARB key coverage analysis (14/14 keys translated in `en`, `bn`, `hi`), screen-by-screen hardcoded audit (53 files), and contributor guide.
+
+### 07 — AI & RAG Pipeline
+- [**AI / RAG Pipeline Index**](./07-ai-rag-pipeline/README.md): Overview of the 100% Groq-native RAG pipeline.
+- [**Retrieval Pipeline Explained**](./07-ai-rag-pipeline/retrieval-pipeline-explained.md): Ingestion script, section-aware chunking, `all-MiniLM-L6-v2` dense vectors, ChromaDB 1.5.9 SQLite store, and cosine similarity filtering.
+- [**Multilingual Translation Step**](./07-ai-rag-pipeline/multilingual-translation-step.md): Fast preliminary Groq translation hop for Indic queries, unicode detection logic, and latency trade-offs.
+- [**Fallback Cascade & Groq Models**](./07-ai-rag-pipeline/fallback-cascade-and-groq-models.md): Genuine 3-tier cascade (Tier 1 Groq $\to$ Tier 2 Fast Groq $\to$ Tier 3 Local Deterministic Fallback) and confirmation of zero Gemini references.
+- [**Prompt & Grounding Safeguards**](./07-ai-rag-pipeline/prompt-and-grounding-safeguards.md): Grounded system prompt rewrite, Pydantic structured output schemas, and post-generation active ingredient guardrail.
+- [**Phase 7C Build Notes**](./07-ai-rag-pipeline/PHASE7C_NOTES.md): Build provenance, git verification, and open questions.
+
+### 08 — Limitations & Engineering Roadmap
+- [**Limitations & Roadmap Index**](./08-limitations-and-roadmap/README.md): Plain-language summary and roadmap overview.
+- [**Consolidated Known Limitations**](./08-limitations-and-roadmap/known-limitations-consolidated.md): Master catalog of all scientific, mobile, and infrastructure limitations, classified as RESOLVED, PARTIALLY MITIGATED, or UNRESOLVED.
+- [**Open Questions for Developers**](./08-limitations-and-roadmap/open-questions-for-the-developer.md): De-duplicated backlog of open architectural questions across hydrology, DevOps, mobile localization, and RAG.
+- [**Remediation History Matrix**](./08-limitations-and-roadmap/remediation-history.md): Definitive timeline and finding-by-finding status matrix from original audit through all 6 code phases and 4 documentation phases.
+- [**Phase 7D Close-out Notes**](./08-limitations-and-roadmap/PHASE7D_NOTES.md): Final build provenance and explicit safety assessment of satellite outage fallback behavior.
+
+---
+
+> [!TIP]
+> **Looking for what still needs work?**  
+> If you want the short, honest summary of current platform limitations, safety risks, and open developer questions without reading the entire documentation set, jump straight to [**08 — Limitations and Roadmap**](./08-limitations-and-roadmap/README.md).
