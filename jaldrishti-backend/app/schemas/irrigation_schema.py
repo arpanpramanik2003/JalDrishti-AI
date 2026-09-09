@@ -75,15 +75,17 @@ class IrrigationResponse(BaseModel):
     location: dict
     total_available_water_mm: float
     needs_irrigation_today: bool
-    recommended_water_mm: float
-    recommended_gross_water_mm: float
-    recommended_pump_hours: int
-    recommended_pump_minutes: int
+    recommended_water_mm: Optional[float] = None
+    recommended_gross_water_mm: Optional[float] = None
+    recommended_pump_hours: int = 0
+    recommended_pump_minutes: int = 0
     irrigation_method_display: str
     irrigation_efficiency_pct: int
     soil_type_display: str
     soil_is_fallback: bool = False
     status_summary: str
+    crop_lifecycle_status: Optional[str] = "ACTIVE"
+    crop_status_message: Optional[str] = None
     
     # Smart Rain Hold & Cost Savings
     rain_hold_active: bool = False

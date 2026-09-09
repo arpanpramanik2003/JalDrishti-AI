@@ -3,6 +3,12 @@ import asyncio
 import httpx
 import logging
 from app.core.config import settings
+from app.core.constants import (
+    DEFAULT_SOIL_CLAY_PERCENT,
+    DEFAULT_SOIL_SAND_PERCENT,
+    DEFAULT_SOIL_BULK_DENSITY_KG_DM3,
+    DEFAULT_SOIL_SOC_G_KG
+)
 from app.services.cache_service import CacheService
 
 logger = logging.getLogger("jaldrishti.soilgrids")
@@ -11,10 +17,10 @@ logger = logging.getLogger("jaldrishti.soilgrids")
 class SoilGridsService:
     # Default regional fallback (West Bengal Gangetic Alluvium Profile)
     DEFAULT_SOIL_PROFILE = {
-        "clay_percent": 30.0,
-        "sand_percent": 25.0,
-        "bulk_density_kg_dm3": 1.35,
-        "soc_g_kg": 10.0,
+        "clay_percent": DEFAULT_SOIL_CLAY_PERCENT,
+        "sand_percent": DEFAULT_SOIL_SAND_PERCENT,
+        "bulk_density_kg_dm3": DEFAULT_SOIL_BULK_DENSITY_KG_DM3,
+        "soc_g_kg": DEFAULT_SOIL_SOC_G_KG,
         "is_fallback": True
     }
 
